@@ -7,3 +7,12 @@ Double click on image to open gallery view. Click the trash bin to remove the im
 ## Installation
 
 To install, clone this repository into `ComfyUI/custom_nodes` folder with `git clone https://github.com/palant/image-gallery-comfyui` and restart ComfyUI.
+
+## Keyboard shortcuts
+
+| Key         | Function                             |
+|-------------|--------------------------------------|
+| Left arrow  | Display previous image               |
+| Right arrow | Display next image                   |
+| Del         | Remove the currently displayed image |
+| Esc         | Close gallery view                   |
