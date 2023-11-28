@@ -1,5 +1,9 @@
 # Image Gallery
 
-Double click on image to open.
+Double click on image to open gallery view. Click the trash bin to remove the image currently open.
 
-![tasty-knives-retire-104-198-110-184 loca lt_ (1)](https://user-images.githubusercontent.com/131459485/233774475-de194000-347e-4d75-a9f4-17f84ad735fd.png)
+![Screenshot of the ComfyUI user interface, overlaid with a gallery view. A big image of a bottle is displayed, below it four thumbnails of similar images, second being selected. White arrow symbols point left and right, in the upper right corner a red trash bin symbol is displayed.](screenshot.png)
+
+## Installation
+
+To install, clone this repository into `ComfyUI/custom_nodes` folder with `git clone https://github.com/palant/image-gallery-comfyui` and restart ComfyUI.

@@ -35,23 +35,33 @@ var styles = `
     display: block;
 }
 
+.comfy-carousel-box .remove:before,
 .comfy-carousel-box .prev:before,
 .comfy-carousel-box .next:before {
-    color: #fff;
     font-size: 100px;
     position: absolute;
-    top: 35%;
     cursor: pointer;
+}
+
+.comfy-carousel-box .remove:before {
+  content: '🗑';
+  color: #f00;
+  right: 0;
+  top: 0;
 }
 
 .comfy-carousel-box .prev:before {
     content: '❮';
+    color: #fff;
     left: 0;
+    top: 35%;
 }
 
 .comfy-carousel-box .next:before {
     content: '❯';
+    color: #fff;
     right: 0;
+    top: 35%;
 }
 
 .comfy-carousel-box .dots img {
@@ -100,25 +110,60 @@ class ComfyCarousel extends ComfyDialog {
     slide.classList.add('shown');
     slide._dot.classList.toggle('active');
   }
+  async removeImage(e) {
+    e.stopPropagation();
+
+    if (!confirm("Remove this image?"))
+      return;
+
+    let active = this.getActive();
+    let response = await fetch("/gallery/image/remove", {
+      method: "POST",
+      body: active.src.split("?")[1],
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      }
+    });
+    if (response.status >= 300) {
+      alert(`Failed removing image, server responded with: ${response.statusText}`);
+      return;
+    }
+
+    let newActive = active.nextElementSibling || active.previousElementSibling;
+    active._dot.remove();
+    active.remove();
+    this.removeCallback(active.src);
+
+    if (newActive)
+      this.selectImage(newActive);
+    else
+      this.close();
+  }
   prevSlide(e) {
+    e.stopPropagation();
+
     let active = this.getActive();
     this.selectImage(active.previousElementSibling || active.parentNode.lastElementChild);
-    e.stopPropagation();
   }
   nextSlide(e) {
+    e.stopPropagation();
+
     let active = this.getActive();
     this.selectImage(active.nextElementSibling || active.parentNode.firstElementChild);
-    e.stopPropagation();
   }
   onKeydown(e) {
     if (e.key == "Escape")
       this.close();
+    else if (e.key == "Delete")
+      this.removeImage(e);
     else if (e.key == "ArrowLeft")
       this.prevSlide(e);
     else if (e.key == "ArrowRight")
       this.nextSlide(e);
   }
-  show(images, activeIndex) {
+  show(images, activeIndex, removeCallback) {
+    this.removeCallback = removeCallback;
+
     let slides = [];
     let dots = [];
     for (let image of images) {
@@ -140,8 +185,9 @@ class ComfyCarousel extends ComfyDialog {
     const carousel = $el("div.comfy-carousel-box", {  }, [
       $el("div.slides", {  }, slides),
       $el("div.dots", {  }, dots),
-      $el("a.prev", { $: (el) => el.addEventListener('click', (e) => this.prevSlide(e)), }),
-      $el("a.next", { $: (el) => el.addEventListener('click', (e) => this.nextSlide(e)), }),
+      $el("a.remove", { $: el => el.addEventListener('click', e => this.removeImage(e)), }),
+      $el("a.prev", { $: el => el.addEventListener('click', e => this.prevSlide(e)), }),
+      $el("a.next", { $: el => el.addEventListener('click', e => this.nextSlide(e)), }),
     ]);
     super.show(carousel);
 
@@ -188,7 +234,17 @@ app.registerExtension({
           imageIndex = this.imageIndex;
         else if (this.overIndex !== null)
           imageIndex = this.overIndex;
-        app.ui.carousel.show(this.imgs, imageIndex);
+        app.ui.carousel.show(this.imgs, imageIndex, src => {
+          let index = this.imgs.findIndex(image => image.src == src);
+          if (index >= 0) {
+            this.imgs.splice(index, 1);
+            if (this.imageIndex !== null)
+              this.imageIndex = this.imgs.length ? this.imageIndex % this.imgs.length : null;
+            if (this.overIndex !== null)
+              this.overIndex = this.imgs.length ? this.overIndex % this.imgs.length : null;
+            app.graph.setDirtyCanvas(true);
+          }
+        });
       }
 
       if (origOnDblClick)
