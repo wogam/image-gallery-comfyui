@@ -1,8 +1,4 @@
-# ComfyUI-Extensions
-
-Custom javascript extensions for better UX for ComfyUI.
-
-## Image Gallery
+# Image Gallery
 
 Double click on image to open.
 
