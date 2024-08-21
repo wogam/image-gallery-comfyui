@@ -1,6 +1,7 @@
 # Image Gallery
 
 Double click on image to open gallery view. Click the trash bin to remove the image currently open.
+You can view all your recent generations by clicking the gallery icon.
 
 ![image](https://github.com/user-attachments/assets/a85de8a3-df90-468d-bb13-08c8b485b6d1)
 
