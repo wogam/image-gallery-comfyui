@@ -1,4 +1,5 @@
 import os
+import json
 import folder_paths
 from server import PromptServer
 from aiohttp import web
@@ -29,3 +30,21 @@ async def remove_image(request):
 
 PromptServer.instance.routes.post('/gallery/image/remove')(remove_image)
 
+async def get_gallery_images(request):
+    output_dir = folder_paths.get_output_directory()
+    images = []
+
+    for filename in os.listdir(output_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+            file_path = os.path.join(output_dir, filename)
+            creation_time = os.path.getctime(file_path)
+            images.append((f"/view?filename={filename}&type=output", creation_time))
+
+    # Sort images based on creation time (oldest to newest)
+    sorted_images = sorted(images, key=lambda x: x[1], reverse=True)
+    # Extract only the image paths from the sorted list
+    sorted_image_paths = [img[0] for img in sorted_images]
+
+    return web.Response(text=json.dumps(sorted_image_paths), content_type='application/json')
+
+PromptServer.instance.routes.get('/gallery/images')(get_gallery_images)
