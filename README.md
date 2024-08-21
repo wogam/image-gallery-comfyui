@@ -2,7 +2,8 @@
 
 Double click on image to open gallery view. Click the trash bin to remove the image currently open.
 
-![Screenshot of the ComfyUI user interface, overlaid with a gallery view. A big image of a bottle is displayed, below it four thumbnails of similar images, second being selected. White arrow symbols point left and right, in the upper right corner a red trash bin symbol is displayed.](screenshot.png)
+![image](https://github.com/user-attachments/assets/a85de8a3-df90-468d-bb13-08c8b485b6d1)
+
 
 ## Installation
 
