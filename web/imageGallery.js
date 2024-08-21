@@ -222,6 +222,28 @@ const styles = `
   width: 200px;
   z-index: 10000;
 }
+
+.comfy-carousel .scroll-to-top {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.comfy-carousel .scroll-to-top:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
 `;
 
 const styleSheet = document.createElement("style");
@@ -635,7 +657,13 @@ class ComfyCarousel extends ComfyDialog {
     const galleryContainer = document.createElement('div');
     galleryContainer.className = 'gallery-container';
 
-    // Get the stored size or use default
+    const scrollToTopButton = document.createElement('button');
+    scrollToTopButton.className = 'scroll-to-top';
+    scrollToTopButton.textContent = '↑';
+    scrollToTopButton.addEventListener('click', () => {
+      galleryContainer.scrollTop = 0;
+    });
+
     const storedSize = localStorage.getItem('galleryImageSize') || '150';
 
     const sizeSlider = document.createElement('input');
@@ -695,6 +723,7 @@ class ComfyCarousel extends ComfyDialog {
     this.element.innerHTML = '';
     this.element.appendChild(galleryContainer);
     this.element.appendChild(sizeSlider);
+    this.element.appendChild(scrollToTopButton);
 
     const closeButton = document.createElement('button');
     closeButton.className = 'close-gallery';
