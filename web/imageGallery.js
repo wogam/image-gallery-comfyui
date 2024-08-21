@@ -62,7 +62,8 @@ const styles = `
 .comfy-carousel-box .remove,
 .comfy-carousel-box .close,
 .comfy-carousel-box .gallery,
-.comfy-carousel-box .reset-zoom {
+.comfy-carousel-box .reset-zoom,
+.comfy-carousel-box .load {
   background: transparent;
   color: #fff;
   border: none;
@@ -97,7 +98,8 @@ const styles = `
 .comfy-carousel-box .remove:hover,
 .comfy-carousel-box .close:hover,
 .comfy-carousel-box .gallery:hover,
-.comfy-carousel-box .reset-zoom:hover {
+.comfy-carousel-box .reset-zoom:hover,
+.comfy-carousel-box .load:hover {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
@@ -108,16 +110,10 @@ const styles = `
   background: rgba(0,0,0,0.8);
 }
 
-.comfy-carousel-box .remove { top: 20px; right: 120px; }
-.comfy-carousel-box .gallery { top: 20px; right: 70px; }
-.comfy-carousel-box .close { top: 20px; right: 20px; }
-.comfy-carousel-box .prev { left: 20px; top: 50%; transform: translateY(-50%); }
-.comfy-carousel-box .next { right: 20px; top: 50%; transform: translateY(-50%); }
-.comfy-carousel-box .reset-zoom { top: 20px; right: 170px; }
-
-.comfy-carousel-box .remove:hover { background-color: rgba(255, 0, 0, 0.2); }
-.comfy-carousel-box .gallery:hover { background-color: rgba(66, 135, 245, 0.2); }
-.comfy-carousel-box .reset-zoom:hover { background-color: rgba(234, 182, 118, 0.2); }
+.comfy-carousel-box .remove:hover { background-color: rgba(255, 105, 97, 0.3); }
+.comfy-carousel-box .gallery:hover { background-color: rgba(167, 199, 231, 0.3); }
+.comfy-carousel-box .reset-zoom:hover { background-color: rgba(250, 200, 152, 0.3); }
+.comfy-carousel-box .load:hover { background-color: rgba(193, 225, 193, 0.3); }
 
 .comfy-carousel-box .dots {
   position: relative;
@@ -133,6 +129,14 @@ const styles = `
   overflow-x: auto;
   white-space: nowrap;
 }
+
+.comfy-carousel-box .reset-zoom { top: 20px; right: 220px; }
+.comfy-carousel-box .load { top: 20px; right: 170px; }
+.comfy-carousel-box .remove { top: 20px; right: 120px; }
+.comfy-carousel-box .gallery { top: 20px; right: 70px; }
+.comfy-carousel-box .close { top: 20px; right: 20px; }
+.comfy-carousel-box .prev { left: 20px; top: 50%; transform: translateY(-50%); }
+.comfy-carousel-box .next { right: 20px; top: 50%; transform: translateY(-50%); }
 
 .comfy-carousel-box .dots::-webkit-scrollbar {
   height: 8px;
@@ -167,7 +171,7 @@ const styles = `
 
 .comfy-carousel .gallery-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--image-size, 150px), 1fr));
   gap: 10px;
   padding: 20px;
   max-height: 90vh;
@@ -177,8 +181,8 @@ const styles = `
 }
 
 .comfy-carousel .gallery-container img {
-  width: 100%;
-  height: 150px;
+  width: var(--image-size, 150px);
+  height: var(--image-size, 150px);
   object-fit: cover;
   cursor: pointer;
   transition: transform 0.3s ease;
@@ -209,12 +213,171 @@ const styles = `
 .comfy-carousel .close-gallery:hover {
   background: rgba(0,0,0,0.8);
 }
+
+.gallery-size-slider {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  z-index: 10000;
+}
 `;
 
 const styleSheet = document.createElement("style");
 styleSheet.type = "text/css";
 styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
+
+function parseExifData(exifData) {
+  // Check for the correct TIFF header (0x4949 for little-endian or 0x4D4D for big-endian)
+  const isLittleEndian = new Uint16Array(exifData.slice(0, 2))[0] === 0x4949;
+
+  // Function to read 16-bit and 32-bit integers from binary data
+  function readInt(offset, isLittleEndian, length) {
+    let arr = exifData.slice(offset, offset + length)
+    if (length === 2) {
+      return new DataView(arr.buffer, arr.byteOffset, arr.byteLength).getUint16(0, isLittleEndian);
+    } else if (length === 4) {
+      return new DataView(arr.buffer, arr.byteOffset, arr.byteLength).getUint32(0, isLittleEndian);
+    }
+  }
+
+  // Read the offset to the first IFD (Image File Directory)
+  const ifdOffset = readInt(4, isLittleEndian, 4);
+
+  function parseIFD(offset) {
+    const numEntries = readInt(offset, isLittleEndian, 2);
+    const result = {};
+
+    for (let i = 0; i < numEntries; i++) {
+      const entryOffset = offset + 2 + i * 12;
+      const tag = readInt(entryOffset, isLittleEndian, 2);
+      const type = readInt(entryOffset + 2, isLittleEndian, 2);
+      const numValues = readInt(entryOffset + 4, isLittleEndian, 4);
+      const valueOffset = readInt(entryOffset + 8, isLittleEndian, 4);
+
+      // Read the value(s) based on the data type
+      let value;
+      if (type === 2) {
+        // ASCII string
+        value = String.fromCharCode(...exifData.slice(valueOffset, valueOffset + numValues - 1));
+      }
+
+      result[tag] = value;
+    }
+
+    return result;
+  }
+
+  // Parse the first IFD
+  const ifdData = parseIFD(ifdOffset);
+  return ifdData;
+}
+
+function readFile(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = event => {
+      resolve(new DataView(event.target.result));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function extractMetadataFromExif(array) {
+  const data = parseExifData(array);
+
+  // Look for the UserComment EXIF tag
+  let userComment = data[0x9286];
+  if (userComment) {
+    try {
+      return JSON.parse(userComment);
+    } catch (e) {
+      // Ignore non-JSON contents
+    }
+  }
+
+  return null;
+}
+
+async function getWebpMetadata(file) {
+  const dataView = await readFile(file);
+
+  // Check WEBP signature
+  if (dataView.getUint32(0) !== 0x52494646 || dataView.getUint32(8) !== 0x57454250)
+    return null;
+
+  // Go through the chunks
+  let offset = 12;
+  while (offset < dataView.byteLength) {
+    const chunkType = dataView.getUint32(offset);
+    const chunkLength = dataView.getUint32(offset + 4, true);
+    if (chunkType == 0x45584946)  // EXIF
+    {
+      const data = extractMetadataFromExif(new Uint8Array(dataView.buffer, offset + 8, chunkLength));
+      if (data)
+        return data;
+    }
+    offset += 8 + chunkLength;
+  }
+
+  return null;
+}
+
+async function getJpegMetadata(file) {
+  const dataView = await readFile(file);
+
+  // Check that the JPEG SOI segment is present
+  if (dataView.getUint16(0) !== 0xFFD8)
+    return null;
+
+  // Go through other segments
+  let offset = 2;
+  while (offset < dataView.byteLength) {
+    const segmentType = dataView.getUint16(offset);
+    if (segmentType == 0xFFD9 || (segmentType & 0xFF00) != 0xFF00) {
+      // EOI segment or invalid segment type
+      break;
+    }
+
+    const segmentLength = dataView.getUint16(offset + 2);
+    if (segmentLength < 2) {
+      // Invalid segment length
+      break;
+    }
+
+    if (segmentType == 0xFFE1 && segmentLength > 8) {
+      // APP1 segment contains EXIF data
+      // Skip next six bytes ("Exif\0\0"), not part of EXIF data
+      const data = extractMetadataFromExif(new Uint8Array(dataView.buffer, offset + 10, segmentLength - 8));
+      if (data)
+        return data;
+    }
+    offset += 2 + segmentLength;
+  }
+
+  return null;
+}
+
+function getMetadata(file) {
+  if (file.type === "image/webp")
+    return getWebpMetadata(file);
+  else if (file.type == "image/jpeg")
+    return getJpegMetadata(file);
+  else
+    return null;
+}
+
+async function handleFile(origHandleFile, file, ...args) {
+  const metadata = await getMetadata(file);
+  if (metadata && metadata.workflow)
+    app.loadGraphData(metadata.workflow);
+  else if (metadata && metadata.prompt)
+    app.loadApiJson(metadata.prompt);
+  else
+    return origHandleFile.call(this, file, ...args);
+}
 
 class ComfyCarousel extends ComfyDialog {
   constructor(isGalleryCarousel = false) {
@@ -298,6 +461,44 @@ class ComfyCarousel extends ComfyDialog {
     slide._dot.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }
 
+  loadImage() {
+    const activeImage = this.getActive();
+    if (activeImage) {
+      const imageUrl = activeImage.src;
+      fetch(imageUrl)
+        .then(response => response.blob())
+        .then(blob => {
+          // Determine the file type based on the blob's type
+          let fileType = blob.type.split('/')[1];
+          if (fileType === 'jpeg') fileType = 'jpg'; // Normalize JPEG to JPG
+
+          const fileName = `image.${fileType}`;
+          const file = new File([blob], fileName, { type: blob.type });
+
+          // Use the existing getMetadata function to extract metadata
+          getMetadata(file).then(metadata => {
+            if (metadata) {
+              if (metadata.workflow) {
+                app.loadGraphData(metadata.workflow);
+              } else if (metadata.prompt) {
+                app.loadApiJson(metadata.prompt);
+              }
+            }
+
+            // Create a synthetic drop event
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            const event = new DragEvent("drop", { dataTransfer });
+            document.dispatchEvent(event);
+          });
+        })
+        .catch(error => {
+          console.error("Error loading image:", error);
+        });
+    }
+  }
+
+
   setupCarousel(slides, activeIndex) {
     const carousel = $el("div.comfy-carousel-box", {}, [
       $el("div.slides", {}, slides),
@@ -314,6 +515,13 @@ class ComfyCarousel extends ComfyDialog {
         $el("button.reset-zoom", {
           innerHTML: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-3.2 -3.2 38.40 38.40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18,28A12,12,0,1,0,6,16v6.2L2.4,18.6,1,20l6,6,6-6-1.4-1.4L8,22.2V16H8A10,10,0,1,1,18,26Z"/></svg>`,
           onclick: () => this.resetZoom()
+        }),
+        $el("button.load", {
+          innerHTML: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
+          onclick: () => {
+            this.loadImage()
+            this.close()
+          }
         }),
         $el("button.gallery", {
           innerHTML: `<svg width="64px" height="64px" viewBox="-3.36 -3.36 30.72 30.72" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M22 13.4375C22 17.2087 22 19.0944 20.8284 20.2659C19.6569 21.4375 17.7712 21.4375 14 21.4375H10C6.22876 21.4375 4.34315 21.4375 3.17157 20.2659C2 19.0944 2 17.2087 2 13.4375C2 9.66626 2 7.78065 3.17157 6.60907C4.34315 5.4375 6.22876 5.4375 10 5.4375H14C17.7712 5.4375 19.6569 5.4375 20.8284 6.60907C21.4921 7.27271 21.7798 8.16545 21.9045 9.50024" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/> <path d="M3.98779 6C4.10022 5.06898 4.33494 4.42559 4.82498 3.93726C5.76553 3 7.27932 3 10.3069 3H13.5181C16.5457 3 18.0595 3 19 3.93726C19.4901 4.42559 19.7248 5.06898 19.8372 6" stroke="#ffffff" stroke-width="1.6"/> <circle cx="17.5" cy="9.9375" r="1.5" stroke="#ffffff" stroke-width="1.6"/> <path d="M2 13.9376L3.75159 12.405C4.66286 11.6077 6.03628 11.6534 6.89249 12.5096L11.1822 16.7993C11.8694 17.4866 12.9512 17.5803 13.7464 17.0214L14.0446 16.8119C15.1888 16.0077 16.7369 16.1009 17.7765 17.0365L21 19.9376" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/> </g> </svg>`,
@@ -427,6 +635,25 @@ class ComfyCarousel extends ComfyDialog {
     const galleryContainer = document.createElement('div');
     galleryContainer.className = 'gallery-container';
 
+    // Get the stored size or use default
+    const storedSize = localStorage.getItem('galleryImageSize') || '150';
+
+    const sizeSlider = document.createElement('input');
+    sizeSlider.type = 'range';
+    sizeSlider.min = '50';
+    sizeSlider.max = '300';
+    sizeSlider.value = storedSize;
+    sizeSlider.className = 'gallery-size-slider';
+
+    const updateImageSize = () => {
+      const size = sizeSlider.value + 'px';
+      galleryContainer.style.setProperty('--image-size', size);
+      // Store the new size
+      localStorage.setItem('galleryImageSize', sizeSlider.value);
+    };
+
+    sizeSlider.addEventListener('input', updateImageSize);
+
     const loadImage = (img, src) => {
       return new Promise((resolve) => {
         img.onload = resolve;
@@ -467,6 +694,7 @@ class ComfyCarousel extends ComfyDialog {
 
     this.element.innerHTML = '';
     this.element.appendChild(galleryContainer);
+    this.element.appendChild(sizeSlider);
 
     const closeButton = document.createElement('button');
     closeButton.className = 'close-gallery';
@@ -479,8 +707,11 @@ class ComfyCarousel extends ComfyDialog {
     // Wait for the initial set of images to load
     await Promise.all(immediateLoadPromises);
 
+    updateImageSize(); // Initial size update
+
     return galleryContainer;
   }
+
 
   showLargeView(images, activeIndex) {
     this.element.innerHTML = '';
@@ -555,6 +786,11 @@ class ComfyCarousel extends ComfyDialog {
     }
   }
 
+  initializeGallerySize() {
+    const storedSize = localStorage.getItem('galleryImageSize') || '150';
+    document.documentElement.style.setProperty('--image-size', `${storedSize}px`);
+  }
+
   show(images, activeIndex, removeCallback) {
     this.removeCallback = removeCallback;
     const slides = images.map(image => {
@@ -570,6 +806,13 @@ class ComfyCarousel extends ComfyDialog {
   close() {
     document.removeEventListener("keydown", this.onKeydown, { capture: true });
     document.body.style.overflow = '';
+
+    // Remove the slider if it exists
+    const slider = this.element.querySelector('.gallery-size-slider');
+    if (slider) {
+      slider.remove();
+    }
+
     super.close();
   }
 }
@@ -579,6 +822,7 @@ app.registerExtension({
   init() {
     app.ui.galleryCarousel = new ComfyCarousel();
     app.ui.nodeCarousel = new ComfyCarousel();
+    app.ui.galleryCarousel.initializeGallerySize();
 
     const createSVGElement = (type, attributes) => {
       const el = document.createElementNS("http://www.w3.org/2000/svg", type);
@@ -622,6 +866,27 @@ app.registerExtension({
       clearButton.parentNode.insertBefore(galleryButton, clearButton.nextSibling);
     } else {
       console.warn("Clear button not found. Gallery icon couldn't be added.");
+    }
+  },
+
+  async setup() {
+    // It would be better to register our own handler for the drop event but there
+    // is no way to consider nodes handling the event. So piggybacking it is.
+    let origHandleFile = app.handleFile;
+    app.handleFile = function (...args) {
+      handleFile.call(this, origHandleFile, ...args)
+    };
+
+    // Make sure workflow upload accepts WEBP and JPEG files
+    const input = document.getElementById("comfy-file-input");
+    let types = input?.getAttribute("accept");
+    if (types) {
+      types = types.split(",").map(t => t.trim());
+      if (!types.includes("image/webp"))
+        types.push("image/webp");
+      if (!types.includes("image/jpeg"))
+        types.push("image/jpeg");
+      input.setAttribute("accept", types.join(","));
     }
   },
 
