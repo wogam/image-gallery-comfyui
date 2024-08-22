@@ -218,13 +218,13 @@ const styles = `
 }
 
 .comfy-carousel .close-gallery {
-  position: fixed;
-  top: 20px;
-  right: 20px;
+  position: absolute;
+  top: 25px;
+  right: 25px;
   background: rgba(0,0,0,0.5);
   color: #fff;
   border: none;
-  border-radius: 50%;
+  border-radius: 8px;
   width: 40px;
   height: 40px;
   font-size: 20px;
@@ -236,7 +236,9 @@ const styles = `
 }
 
 .comfy-carousel .close-gallery:hover {
-  background: rgba(0,0,0,0.8);
+  background: rgba(255, 255, 255, 0.1); /* Match hover effect */
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .gallery-size-slider {
