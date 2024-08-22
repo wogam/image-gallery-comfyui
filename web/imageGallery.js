@@ -15,6 +15,20 @@ const styles = `
   z-index: 9999;
 }
 
+.comfy-carousel {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.comfy-carousel.show {
+  display: flex;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.comfy-carousel.hide {
+  opacity: 0;
+}
+
 .comfy-carousel-box {
   margin: 0 auto;
   text-align: center;
@@ -181,6 +195,16 @@ const styles = `
   background: rgba(0,0,0,0.8);
 }
 
+.gallery-container {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  opacity: 0;
+}
+
+.gallery-container.show {
+  opacity: 1;
+}
+
+
 .comfy-carousel .gallery-container img {
   width: var(--image-size, 150px);
   height: var(--image-size, 150px);
@@ -328,10 +352,8 @@ styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
 
 function parseExifData(exifData) {
-  // Check for the correct TIFF header (0x4949 for little-endian or 0x4D4D for big-endian)
   const isLittleEndian = new Uint16Array(exifData.slice(0, 2))[0] === 0x4949;
 
-  // Function to read 16-bit and 32-bit integers from binary data
   function readInt(offset, isLittleEndian, length) {
     let arr = exifData.slice(offset, offset + length)
     if (length === 2) {
@@ -341,7 +363,6 @@ function parseExifData(exifData) {
     }
   }
 
-  // Read the offset to the first IFD (Image File Directory)
   const ifdOffset = readInt(4, isLittleEndian, 4);
 
   function parseIFD(offset) {
@@ -355,7 +376,6 @@ function parseExifData(exifData) {
       const numValues = readInt(entryOffset + 4, isLittleEndian, 4);
       const valueOffset = readInt(entryOffset + 8, isLittleEndian, 4);
 
-      // Read the value(s) based on the data type
       let value;
       if (type === 2) {
         // ASCII string
@@ -368,7 +388,6 @@ function parseExifData(exifData) {
     return result;
   }
 
-  // Parse the first IFD
   const ifdData = parseIFD(ifdOffset);
   return ifdData;
 }
@@ -477,6 +496,28 @@ async function handleFile(origHandleFile, file, ...args) {
     return origHandleFile.call(this, file, ...args);
 }
 
+function createGallerySVG(width = "1em", height = "1em", fontSize = "20px") {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", width);
+  svg.setAttribute("height", height);
+  svg.style.fontSize = fontSize;
+
+  const paths = [
+    "M17.5,21.25H6.5A3.75,3.75,0,0,1,2.75,17.5V6.5A3.75,3.75,0,0,1,6.5,2.75h11A3.75,3.75,0,0,1,21.25,6.5v11A3.75,3.75,0,0,1,17.5,21.25Zm-11-17A2.25,2.25,0,0,0,4.25,6.5v11A2.25,2.25,0,0,0,6.5,19.75h11a2.25,2.25,0,0,0,2.25-2.25V6.5A2.25,2.25,0,0,0,17.5,4.25Z",
+    "M3.5,17.06a.76.76,0,0,1-.58-.27.75.75,0,0,1,.1-1l4.7-3.9a3.75,3.75,0,0,1,5.27.48l1.12,1.34a2.25,2.25,0,0,0,3.21.25L20,11.56a.75.75,0,0,1,1,1.13L18.31,15A3.74,3.74,0,0,1,13,14.62l-1.12-1.34A2.25,2.25,0,0,0,8.68,13L4,16.89A.72.72,0,0,1,3.5,17.06Z"
+  ];
+
+  paths.forEach(d => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "currentColor");
+    svg.appendChild(path);
+  });
+
+  return svg;
+}
+
 class ComfyCarousel extends ComfyDialog {
   constructor(isGalleryCarousel = false) {
     super();
@@ -517,7 +558,6 @@ class ComfyCarousel extends ComfyDialog {
       activeImage.style.transform = `scale(${this.scale}) translate(${this.translateX / this.scale}px, ${this.translateY / this.scale}px)`;
     }
   }
-
 
   resetZoom() {
     this.scale = 1;
@@ -609,15 +649,19 @@ class ComfyCarousel extends ComfyDialog {
           }
         }),
         $el("button.gallery", {
-          innerHTML: `<svg width="64px" height="64px" viewBox="-3.36 -3.36 30.72 30.72" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M22 13.4375C22 17.2087 22 19.0944 20.8284 20.2659C19.6569 21.4375 17.7712 21.4375 14 21.4375H10C6.22876 21.4375 4.34315 21.4375 3.17157 20.2659C2 19.0944 2 17.2087 2 13.4375C2 9.66626 2 7.78065 3.17157 6.60907C4.34315 5.4375 6.22876 5.4375 10 5.4375H14C17.7712 5.4375 19.6569 5.4375 20.8284 6.60907C21.4921 7.27271 21.7798 8.16545 21.9045 9.50024" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/> <path d="M3.98779 6C4.10022 5.06898 4.33494 4.42559 4.82498 3.93726C5.76553 3 7.27932 3 10.3069 3H13.5181C16.5457 3 18.0595 3 19 3.93726C19.4901 4.42559 19.7248 5.06898 19.8372 6" stroke="#ffffff" stroke-width="1.6"/> <circle cx="17.5" cy="9.9375" r="1.5" stroke="#ffffff" stroke-width="1.6"/> <path d="M2 13.9376L3.75159 12.405C4.66286 11.6077 6.03628 11.6534 6.89249 12.5096L11.1822 16.7993C11.8694 17.4866 12.9512 17.5803 13.7464 17.0214L14.0446 16.8119C15.1888 16.0077 16.7369 16.1009 17.7765 17.0365L21 19.9376" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/> </g> </svg>`,
+          innerHTML: '',
           onclick: async (e) => {
             if (this.isGalleryCarousel) {
-              const galleryContainer = await this.loadGalleryImages(e);
-              this.scrollToLastViewedImage(galleryContainer);
+              if (!this.element.querySelector('.gallery-container')) {
+                const galleryContainer = await this.loadGalleryImages(e);
+                this.scrollToLastViewedImage(galleryContainer);
+              }
             } else {
-              this.close();
-              const galleryContainer = await app.ui.galleryCarousel.loadGalleryImages(e);
-              app.ui.galleryCarousel.scrollToLastViewedImage(galleryContainer);
+              app.ui.nodeCarousel.close();
+              if (!app.ui.galleryCarousel.element.querySelector('.gallery-container')) {
+                const galleryContainer = await app.ui.galleryCarousel.loadGalleryImages(e);
+                app.ui.galleryCarousel.scrollToLastViewedImage(galleryContainer);
+              }
             }
           }
         }),
@@ -630,6 +674,9 @@ class ComfyCarousel extends ComfyDialog {
       $el("button.prev", { textContent: "❮", onclick: e => this.prevSlide(e) }),
       $el("button.next", { textContent: "❯", onclick: e => this.nextSlide(e) }),
     ]);
+
+    const galleryButton = carousel.querySelector('button.gallery');
+    galleryButton.appendChild(createGallerySVG("26px", "26px", "20px"));
 
     this.element.appendChild(carousel);
     this.selectImage(slides[activeIndex]);
@@ -696,16 +743,21 @@ class ComfyCarousel extends ComfyDialog {
       const oldScale = this.scale;
       this.scale = Math.max(0.1, Math.min(10, this.scale * scaleChange));
 
-      // Adjust translation to keep the point under the cursor fixed
+      // Get the mouse position relative to the image
       const rect = this.getActive().getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      this.translateX = mouseX - (mouseX - this.translateX) * (this.scale / oldScale);
-      this.translateY = mouseY - (mouseY - this.translateY) * (this.scale / oldScale);
+      // Calculate the new translation
+      const newTranslateX = mouseX - (mouseX - this.translateX * oldScale) * (this.scale / oldScale);
+      const newTranslateY = mouseY - (mouseY - this.translateY * oldScale) * (this.scale / oldScale);
+
+      this.translateX = newTranslateX / this.scale;
+      this.translateY = newTranslateY / this.scale;
 
       this.updateZoom();
     });
+
   }
 
   async loadGalleryImages(e) {
@@ -923,6 +975,10 @@ class ComfyCarousel extends ComfyDialog {
     this.element.appendChild(sizeSlider);
     this.element.appendChild(buttonContainer);
 
+    setTimeout(() => {
+      galleryContainer.classList.add('show');
+    }, 0);
+
     const closeButton = document.createElement('button');
     closeButton.className = 'close-gallery';
     closeButton.textContent = '✖';
@@ -1033,15 +1089,25 @@ class ComfyCarousel extends ComfyDialog {
       return slide;
     });
     const carousel = this.setupCarousel(slides, activeIndex);
+    this.element.classList.add('show');
+    this.element.classList.remove('hide');
     super.show(carousel);
   }
 
   close() {
-    document.removeEventListener("keydown", this.onKeydown, { capture: true });
-    document.body.style.overflow = '';
-    const slider = this.element.querySelector('.gallery-size-slider');
-    if (slider) slider.remove();
-    super.close();
+    this.element.classList.add('hide');
+    this.element.classList.remove('show');
+    setTimeout(() => {
+      document.removeEventListener("keydown", this.onKeydown, { capture: true });
+      document.body.style.overflow = '';
+      const slider = this.element.querySelector('.gallery-size-slider');
+      if (slider) slider.remove();
+      const galleryContainer = this.element.querySelector('.gallery-container');
+      if (galleryContainer) {
+        galleryContainer.remove();
+      }
+      super.close();
+    }, 500); // Match this duration with the CSS transition duration
   }
 }
 
@@ -1052,29 +1118,8 @@ app.registerExtension({
     app.ui.nodeCarousel = new ComfyCarousel();
     app.ui.galleryCarousel.initializeGallerySize();
 
-    const createSVGElement = (type, attributes) => {
-      const el = document.createElementNS("http://www.w3.org/2000/svg", type);
-      Object.entries(attributes).forEach(([key, value]) => el.setAttribute(key, value));
-      return el;
-    };
-
     const createGalleryIcon = (el) => {
-      const svg = createSVGElement("svg", {
-        viewBox: "0 0 24 24",
-        width: "1em",
-        height: "1em",
-        style: "font-size: 20px;"
-      });
-
-      const paths = [
-        "M17.5,21.25H6.5A3.75,3.75,0,0,1,2.75,17.5V6.5A3.75,3.75,0,0,1,6.5,2.75h11A3.75,3.75,0,0,1,21.25,6.5v11A3.75,3.75,0,0,1,17.5,21.25Zm-11-17A2.25,2.25,0,0,0,4.25,6.5v11A2.25,2.25,0,0,0,6.5,19.75h11a2.25,2.25,0,0,0,2.25-2.25V6.5A2.25,2.25,0,0,0,17.5,4.25Z",
-        "M3.5,17.06a.76.76,0,0,1-.58-.27.75.75,0,0,1,.1-1l4.7-3.9a3.75,3.75,0,0,1,5.27.48l1.12,1.34a2.25,2.25,0,0,0,3.21.25L20,11.56a.75.75,0,0,1,1,1.13L18.31,15A3.74,3.74,0,0,1,13,14.62l-1.12-1.34A2.25,2.25,0,0,0,8.68,13L4,16.89A.72.72,0,0,1,3.5,17.06Z"
-      ];
-
-      paths.forEach(d => {
-        svg.appendChild(createSVGElement("path", { d, fill: "currentColor" }));
-      });
-
+      const svg = createGallerySVG();
       el.appendChild(svg);
     };
 
