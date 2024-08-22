@@ -17,5 +17,6 @@ To install, clone this repository into `ComfyUI/custom_nodes` folder with `git c
 | Left arrow  | Display previous image               |
 | Right arrow | Display next image                   |
 | D           | Reset view                           |
+| O           | Open workflow from current image      |
 | Del         | Remove the currently displayed image |
 | Esc         | Close gallery view                   |
