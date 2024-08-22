@@ -204,7 +204,6 @@ const styles = `
   opacity: 1;
 }
 
-
 .comfy-carousel .gallery-container img {
   width: var(--image-size, 150px);
   height: var(--image-size, 150px);
@@ -349,13 +348,13 @@ const styles = `
 
 .comfy-carousel .breadcrumb-navigation {
   position: absolute;
-  top: 25px;
-  left: 100px;
+  margin: 15px;
+  left: 5%;
+  top: 10px;
   background: rgba(0,0,0,0.5);
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 5px 10px;
   font-size: 16px;
   display: flex;
   align-items: center;
@@ -381,21 +380,41 @@ const styles = `
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
   border: none;
-  border-radius: 8px;
   padding: 5px 10px;
   font-size: 16px;
   display: flex;
   align-items: center;
   cursor: pointer;
   transition: background 0.3s;
-  margin-right: 5px;
   font-family: 'Roboto', sans-serif;
+  font-weight: bold;
+}
+
+.breadcrumb-navigation button:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.breadcrumb-navigation button:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 .comfy-carousel .breadcrumb-navigation button:hover {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.folder-button.greyed-out {
+  filter: grayscale(60%) brightness(60%);
+  transition: filter 0.3s;
+}
+
+/* Selected folders */
+.folder-button.selected {
+  box-shadow: 0 0 0 2px #add8e6; /* Light blue border for selected folders */
+  transition: box-shadow 0.3s;
 }
 
 .folder-button {
@@ -906,20 +925,20 @@ class ComfyCarousel extends ComfyDialog {
     selectButton.addEventListener('click', () => {
       isSelectionMode = !isSelectionMode;
       if (isSelectionMode) {
-        selectButton.innerHTML = '&#8212;'; // Change icon to a dash when select mode is active
-        galleryContainer.querySelectorAll('img').forEach(img => {
-          if (!img.classList.contains('selected')) {
-            img.classList.add('greyed-out');
+        selectButton.innerHTML = '&#8212;';
+        galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
+          if (!item.classList.contains('selected')) {
+            item.classList.add('greyed-out');
           }
         });
       } else {
-        selectButton.innerHTML = '&#10003;'; // Change icon back to a tick when select mode is inactive
-        galleryContainer.querySelectorAll('img').forEach(img => {
-          img.classList.remove('greyed-out');
-          img.classList.remove('selected'); // Unselect all images
+        selectButton.innerHTML = '&#10003;';
+        galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
+          item.classList.remove('greyed-out');
+          item.classList.remove('selected');
         });
-        deleteButton.style.display = 'none'; // Hide delete button
-        lastSelectedIndex = -1; // Reset the last selected index
+        deleteButton.style.display = 'none';
+        lastSelectedIndex = -1;
       }
     });
 
@@ -928,29 +947,42 @@ class ComfyCarousel extends ComfyDialog {
     deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-0.24 -0.24 24.48 24.48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12L14 16M14 12L10 16M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M18 6V16.2C18 17.8802 18 18.7202 17.673 19.362C17.3854 19.9265 16.9265 20.3854 16.362 20.673C15.7202 21 14.8802 21 13.2 21H10.8C9.11984 21 8.27976 21 7.63803 20.673C7.07354 20.3854 6.6146 19.9265 6.32698 19.362C6 18.7202 6 17.8802 6 16.2V6"/></svg>`;
     deleteButton.style.display = 'none'; // Initially hidden
     deleteButton.addEventListener('click', async () => {
-      const selectedImages = galleryContainer.querySelectorAll('img.selected');
+      const selectedItems = galleryContainer.querySelectorAll('.folder-button.selected, img.selected');
 
-      for (const img of selectedImages) {
+      for (const item of selectedItems) {
         try {
-          const imageId = img.dataset.src.split("?")[1];
-
-          const response = await fetch("/gallery/image/remove", {
-            method: "POST",
-            body: imageId,
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded"
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to delete image: ${response.statusText}`);
+          let response;
+          if (item.tagName === 'IMG') {
+            const imageId = item.dataset.src.split("?")[1];
+            response = await fetch("/gallery/image/remove", {
+              method: "POST",
+              body: imageId,
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+              }
+            });
+          } else if (item.classList.contains('folder-button')) {
+            const folderName = item.querySelector('.folder-text').textContent;
+            const folderData = new URLSearchParams();
+            folderData.append('foldername', folderName);
+            response = await fetch("/gallery/folder/remove", {
+              method: "POST",
+              body: folderData,
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+              }
+            });
           }
 
-          img.remove();
+          if (!response.ok) {
+            throw new Error(`Failed to delete item: ${response.statusText}`);
+          }
+
+          item.remove();
 
         } catch (error) {
-          console.error('Error deleting image:', error);
-          alert('Failed to delete some images. Please try again.');
+          console.error('Error deleting item:', error);
+          alert('Failed to delete some items. Please try again.');
           break;
         }
       }
@@ -1009,34 +1041,49 @@ class ComfyCarousel extends ComfyDialog {
 
       // Create an SVG folder icon
       const folderIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      folderIcon.setAttribute("width", "40"); // Adjust size as needed
+      folderIcon.setAttribute("width", "40");
       folderIcon.setAttribute("height", "40");
       folderIcon.setAttribute("viewBox", "0 0 90 90");
       folderIcon.setAttribute("fill", "none");
       folderIcon.setAttribute("xmlns", "http://www.w3.org/2000/svg");
       folderIcon.innerHTML = `
-      <g transform="translate(1.4065934065934016 1.4065934065934016) scale(1 1)">
-        <path d="M 86.351 17.027 H 35.525 c -1.909 0 -3.706 -0.903 -4.846 -2.435 l -2.457 -3.302 c -0.812 -1.092 -2.093 -1.735 -3.454 -1.735 H 3.649 C 1.634 9.556 0 11.19 0 13.205 V 29.11 c 0 -2.015 1.634 -1.649 3.649 -1.649 h 82.703 c 2.015 0 3.649 -0.366 3.649 1.649 v -8.435 C 90 18.661 88.366 17.027 86.351 17.027 z" fill="rgb(48,168,249)"/>
-        <path d="M 86.351 80.444 H 3.649 C 1.634 80.444 0 78.81 0 76.795 V 29.11 c 0 -2.015 1.634 -3.649 3.649 -3.649 h 82.703 c 2.015 0 3.649 1.634 3.649 3.649 v 47.685 C 90 78.81 88.366 80.444 86.351 80.444 z" fill="rgb(42,152,234)"/>
-      </g>
-      `;
+    <g transform="translate(1.4065934065934016 1.4065934065934016) scale(1 1)">
+      <path d="M 86.351 17.027 H 35.525 c -1.909 0 -3.706 -0.903 -4.846 -2.435 l -2.457 -3.302 c -0.812 -1.092 -2.093 -1.735 -3.454 -1.735 H 3.649 C 1.634 9.556 0 11.19 0 13.205 V 29.11 c 0 -2.015 1.634 -1.649 3.649 -1.649 h 82.703 c 2.015 0 3.649 -0.366 3.649 1.649 v -8.435 C 90 18.661 88.366 17.027 86.351 17.027 z" fill="rgb(48,168,249)"/>
+      <path d="M 86.351 80.444 H 3.649 C 1.634 80.444 0 78.81 0 76.795 V 29.11 c 0 -2.015 1.634 -3.649 3.649 -3.649 h 82.703 c 2.015 0 3.649 1.634 3.649 3.649 v 47.685 C 90 78.81 88.366 80.444 86.351 80.444 z" fill="rgb(42,152,234)"/>
+    </g>
+    `;
 
-      folderButton.appendChild(folderIcon); // Add the SVG to the button
+      folderButton.appendChild(folderIcon);
 
       const folderText = document.createElement('span');
       folderText.textContent = folder;
       folderText.className = 'folder-text';
       folderButton.appendChild(folderText);
 
-      // Ensure the event listener is on the entire button
       folderButton.dataset.subfolder = currentFolder ? `${currentFolder}/${folder}` : folder;
+      folderButton.dataset.name = folder; // Add a data attribute for selection
+      folderButton.dataset.type = 'folder'; // Specify the type as folder
+
       folderButton.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent event bubbling
-        this.loadGalleryImages({ target: folderButton });
+
+        if (isSelectionMode) {
+          // Toggle selection state
+          folderButton.classList.toggle('selected');
+          folderButton.classList.toggle('greyed-out');
+
+          // Show delete button if at least one item is selected
+          const anySelected = galleryContainer.querySelector('.folder-button.selected, img.selected');
+          deleteButton.style.display = anySelected ? 'block' : 'none';
+        } else {
+          // Open the folder
+          this.loadGalleryImages({ target: folderButton });
+        }
       });
 
       galleryContainer.appendChild(folderButton);
     });
+
 
 
     images.forEach((src, index) => {
