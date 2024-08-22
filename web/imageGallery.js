@@ -436,14 +436,13 @@ class ComfyCarousel extends ComfyDialog {
     this.translateX = 0;
     this.translateY = 0;
     this.lastViewedIndex = 0;
-    this.element.classList.remove("comfy-modal");
-    this.element.classList.add("comfy-carousel");
+    this.onKeydown = this.onKeydown.bind(this);
+    this.element.classList.replace("comfy-modal", "comfy-carousel");
     this.element.addEventListener('click', (e) => {
       if (e.target === this.element) {
         this.close();
       }
     });
-    this.onKeydown = this.onKeydown.bind(this);
   }
 
   createButtons() {
@@ -469,19 +468,14 @@ class ComfyCarousel extends ComfyDialog {
   }
 
   scrollToImage(index) {
-    const dots = this.element.querySelectorAll('.dots img');
-    if (dots[index]) {
-      dots[index].scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
-    }
+    this.element.querySelectorAll('.dots img')[index]?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
   }
 
   scrollToLastViewedImage(galleryContainer) {
     if (this.lastViewedIndex > 0) {
       const images = galleryContainer.querySelectorAll('img');
       if (images[this.lastViewedIndex]) {
-        setTimeout(() => {
-          images[this.lastViewedIndex].scrollIntoView({ behavior: 'auto', block: 'center' });
-        }, 0);
+        setTimeout(() => images[this.lastViewedIndex].scrollIntoView({ behavior: 'auto', block: 'center' }), 0);
       }
     }
   }
@@ -501,52 +495,35 @@ class ComfyCarousel extends ComfyDialog {
     const startIndex = Math.max(0, activeIndex - 10);
     const endIndex = Math.min(allDots.length - 1, activeIndex + 10);
 
-    allDots.forEach(dot => dot.style.display = 'none');
-
-    for (let i = startIndex; i <= endIndex; i++) {
-      allDots[i].style.display = 'inline-block';
-    }
+    allDots.forEach((dot, i) => dot.style.display = i >= startIndex && i <= endIndex ? 'inline-block' : 'none');
 
     slide._dot.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }
 
-  loadImage() {
+  async loadImage() {
     const activeImage = this.getActive();
     if (activeImage) {
-      const imageUrl = activeImage.src;
-      fetch(imageUrl)
-        .then(response => response.blob())
-        .then(blob => {
-          // Determine the file type based on the blob's type
-          let fileType = blob.type.split('/')[1];
-          if (fileType === 'jpeg') fileType = 'jpg'; // Normalize JPEG to JPG
+      try {
+        const response = await fetch(activeImage.src);
+        const blob = await response.blob();
+        const fileType = blob.type.split('/')[1] === 'jpeg' ? 'jpg' : blob.type.split('/')[1];
+        const file = new File([blob], `image.${fileType}`, { type: blob.type });
 
-          const fileName = `image.${fileType}`;
-          const file = new File([blob], fileName, { type: blob.type });
+        const metadata = await getMetadata(file);
+        if (metadata?.workflow) {
+          app.loadGraphData(metadata.workflow);
+        } else if (metadata?.prompt) {
+          app.loadApiJson(metadata.prompt);
+        }
 
-          // Use the existing getMetadata function to extract metadata
-          getMetadata(file).then(metadata => {
-            if (metadata) {
-              if (metadata.workflow) {
-                app.loadGraphData(metadata.workflow);
-              } else if (metadata.prompt) {
-                app.loadApiJson(metadata.prompt);
-              }
-            }
-
-            // Create a synthetic drop event
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            const event = new DragEvent("drop", { dataTransfer });
-            document.dispatchEvent(event);
-          });
-        })
-        .catch(error => {
-          console.error("Error loading image:", error);
-        });
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        document.dispatchEvent(new DragEvent("drop", { dataTransfer }));
+      } catch (error) {
+        console.error("Error loading image:", error);
+      }
     }
   }
-
 
   setupCarousel(slides, activeIndex) {
     const carousel = $el("div.comfy-carousel-box", {}, [
@@ -647,10 +624,8 @@ class ComfyCarousel extends ComfyDialog {
 
     slidesContainer.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const delta = e.deltaY;
-      const scaleChange = delta > 0 ? 0.9 : 1.1;
-      this.scale *= scaleChange;
-      this.scale = Math.max(0.1, Math.min(10, this.scale));
+      const scaleChange = e.deltaY > 0 ? 0.9 : 1.1;
+      this.scale = Math.max(0.1, Math.min(10, this.scale * scaleChange));
       this.updateZoom();
     });
 
@@ -662,11 +637,8 @@ class ComfyCarousel extends ComfyDialog {
         const maxX = (rect.width * this.scale - containerRect.width) / 2;
         const maxY = (rect.height * this.scale - containerRect.height) / 2;
 
-        this.translateX += e.movementX;
-        this.translateY += e.movementY;
-
-        this.translateX = Math.max(-maxX, Math.min(maxX, this.translateX));
-        this.translateY = Math.max(-maxY, Math.min(maxY, this.translateY));
+        this.translateX = Math.max(-maxX, Math.min(maxX, this.translateX + e.movementX));
+        this.translateY = Math.max(-maxY, Math.min(maxY, this.translateY + e.movementY));
 
         this.updateZoom();
       }
@@ -710,8 +682,44 @@ class ComfyCarousel extends ComfyDialog {
           img.classList.remove('greyed-out');
           img.classList.remove('selected'); // Unselect all images
         });
+        deleteButton.style.display = 'none'; // Hide delete button
         lastSelectedIndex = -1; // Reset the last selected index
       }
+    });
+
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'remove scroll-to-top select-images'; // Add the same classes
+    deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-0.24 -0.24 24.48 24.48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12L14 16M14 12L10 16M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M18 6V16.2C18 17.8802 18 18.7202 17.673 19.362C17.3854 19.9265 16.9265 20.3854 16.362 20.673C15.7202 21 14.8802 21 13.2 21H10.8C9.11984 21 8.27976 21 7.63803 20.673C7.07354 20.3854 6.6146 19.9265 6.32698 19.362C6 18.7202 6 17.8802 6 16.2V6"/></svg>`;
+    deleteButton.style.display = 'none'; // Initially hidden
+    deleteButton.addEventListener('click', async () => {
+      const selectedImages = galleryContainer.querySelectorAll('img.selected');
+
+      for (const img of selectedImages) {
+        try {
+          const imageId = img.dataset.src.split("?")[1];
+
+          const response = await fetch("/gallery/image/remove", {
+            method: "POST",
+            body: imageId,
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to delete image: ${response.statusText}`);
+          }
+
+          img.remove();
+
+        } catch (error) {
+          console.error('Error deleting image:', error);
+          alert('Failed to delete some images. Please try again.');
+          break;
+        }
+      }
+
+      deleteButton.style.display = 'none';
     });
 
     const buttonContainer = document.createElement('div');
@@ -783,6 +791,10 @@ class ComfyCarousel extends ComfyDialog {
             img.classList.toggle('greyed-out');
             lastSelectedIndex = currentIndex;
           }
+
+          // Show delete button if at least one image is selected
+          const anySelected = galleryContainer.querySelector('img.selected');
+          deleteButton.style.display = anySelected ? 'block' : 'none';
         } else {
           this.lastViewedIndex = index;
           this.showLargeView(images, index);
@@ -836,6 +848,7 @@ class ComfyCarousel extends ComfyDialog {
     });
 
     this.element.innerHTML = '';
+    buttonContainer.appendChild(deleteButton); // Add delete button
     buttonContainer.appendChild(selectButton);
     buttonContainer.appendChild(scrollToTopButton);
     this.element.appendChild(galleryContainer);
@@ -858,7 +871,6 @@ class ComfyCarousel extends ComfyDialog {
     return galleryContainer;
   }
 
-
   showLargeView(images, activeIndex) {
     this.element.innerHTML = '';
     const slides = images.map(src => {
@@ -866,7 +878,6 @@ class ComfyCarousel extends ComfyDialog {
       img.src = src;
       return img;
     });
-
     this.setupCarousel(slides, activeIndex);
     this.scrollToImage(activeIndex);
   }
@@ -878,11 +889,9 @@ class ComfyCarousel extends ComfyDialog {
     let response = await fetch("/gallery/image/remove", {
       method: "POST",
       body: active.src.split("?")[1],
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      }
+      headers: { "Content-Type": "application/x-www-form-urlencoded" }
     });
-    if (response.status >= 300) {
+    if (!response.ok) {
       alert(`Failed removing image, server responded with: ${response.statusText}`);
       return;
     }
@@ -919,16 +928,23 @@ class ComfyCarousel extends ComfyDialog {
   onKeydown(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (e.key === "Escape") {
-      this.close();
-    } else if (e.key === "Delete") {
-      this.removeImage(e);
-    } else if (e.key === "ArrowLeft") {
-      this.prevSlide(e);
-    } else if (e.key === "ArrowRight") {
-      this.nextSlide(e);
-    } else if (e.key === "d" || e.key === "D") {
-      this.resetZoom();
+    switch (e.key) {
+      case "Escape":
+        this.close();
+        break;
+      case "Delete":
+        this.removeImage(e);
+        break;
+      case "ArrowLeft":
+        this.prevSlide(e);
+        break;
+      case "ArrowRight":
+        this.nextSlide(e);
+        break;
+      case "d":
+      case "D":
+        this.resetZoom();
+        break;
     }
   }
 
@@ -944,7 +960,6 @@ class ComfyCarousel extends ComfyDialog {
       slide.src = image;
       return slide;
     });
-
     const carousel = this.setupCarousel(slides, activeIndex);
     super.show(carousel);
   }
@@ -952,13 +967,8 @@ class ComfyCarousel extends ComfyDialog {
   close() {
     document.removeEventListener("keydown", this.onKeydown, { capture: true });
     document.body.style.overflow = '';
-
-    // Remove the slider if it exists
     const slider = this.element.querySelector('.gallery-size-slider');
-    if (slider) {
-      slider.remove();
-    }
-
+    if (slider) slider.remove();
     super.close();
   }
 }
@@ -1016,14 +1026,11 @@ app.registerExtension({
   },
 
   async setup() {
-    // It would be better to register our own handler for the drop event but there
-    // is no way to consider nodes handling the event. So piggybacking it is.
     let origHandleFile = app.handleFile;
     app.handleFile = function (...args) {
       handleFile.call(this, origHandleFile, ...args)
     };
 
-    // Make sure workflow upload accepts WEBP and JPEG files
     const input = document.getElementById("comfy-file-input");
     let types = input?.getAttribute("accept");
     if (types) {
