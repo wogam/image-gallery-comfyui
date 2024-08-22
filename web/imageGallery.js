@@ -53,10 +53,11 @@ const styles = `
   right: 20px;
   display: flex;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 7px;
+  height: fit-content; /* Update this property */
 }
 
 .comfy-carousel-box .remove,
@@ -223,14 +224,27 @@ const styles = `
   z-index: 10000;
 }
 
-.comfy-carousel .scroll-to-top {
+.comfy-carousel .gallery-container img.selected {
+  box-shadow: 0 0 0 2px #add8e6;
+}
+
+.comfy-carousel .button-container {
   position: fixed;
   bottom: 20px;
   right: 20px;
+  display: flex;
+  gap: 10px;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 7px;
+}
+
+.comfy-carousel .scroll-to-top,
+.comfy-carousel .select-images {
+  background: transparent;
   color: #fff;
   border: none;
-  border-radius: 50%;
   width: 40px;
   height: 40px;
   font-size: 20px;
@@ -238,11 +252,24 @@ const styles = `
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background 0.3s, transform 0.2s, backdrop-filter 0.3s;
+  border-radius: 8px;
 }
 
-.comfy-carousel .scroll-to-top:hover {
-  background: rgba(0, 0, 0, 0.8);
+.comfy-carousel .scroll-to-top:hover,
+.comfy-carousel .select-images:hover {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.comfy-carousel .gallery-container img.greyed-out {
+  filter: grayscale(60%) brightness(60%);
+}
+
+.comfy-carousel .gallery-container img {
+  user-select: none;
+  -webkit-user-drag: none;
 }
 `;
 
@@ -659,10 +686,36 @@ class ComfyCarousel extends ComfyDialog {
 
     const scrollToTopButton = document.createElement('button');
     scrollToTopButton.className = 'scroll-to-top';
-    scrollToTopButton.textContent = '↑';
+    scrollToTopButton.innerHTML = '↑';
     scrollToTopButton.addEventListener('click', () => {
       galleryContainer.scrollTop = 0;
     });
+
+    const selectButton = document.createElement('button');
+    selectButton.className = 'select-images';
+    selectButton.innerHTML = '&#10003;'; // Initial icon is a tick
+    let isSelectionMode = false;
+    selectButton.addEventListener('click', () => {
+      isSelectionMode = !isSelectionMode;
+      if (isSelectionMode) {
+        selectButton.innerHTML = '&#8212;'; // Change icon to a dash when select mode is active
+        galleryContainer.querySelectorAll('img').forEach(img => {
+          if (!img.classList.contains('selected')) {
+            img.classList.add('greyed-out');
+          }
+        });
+      } else {
+        selectButton.innerHTML = '&#10003;'; // Change icon back to a tick when select mode is inactive
+        galleryContainer.querySelectorAll('img').forEach(img => {
+          img.classList.remove('greyed-out');
+          img.classList.remove('selected'); // Unselect all images
+        });
+        lastSelectedIndex = -1; // Reset the last selected index
+      }
+    });
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'button-container';
 
     const storedSize = localStorage.getItem('galleryImageSize') || '150';
 
@@ -702,14 +755,38 @@ class ComfyCarousel extends ComfyDialog {
 
     const immediateLoadCount = 20;
     const immediateLoadPromises = [];
+    let lastSelectedIndex = -1;
+    let isDragging = false;
+    let startX, startY;
 
     images.forEach((src, index) => {
       const img = new Image();
       img.dataset.src = src;
       img.alt = `Gallery image ${index + 1}`;
-      img.addEventListener('click', () => {
-        this.lastViewedIndex = index;
-        this.showLargeView(images, index);
+      img.addEventListener('click', (e) => {
+        if (isSelectionMode) {
+          const currentIndex = index;
+
+          if (e.shiftKey && lastSelectedIndex !== -1) {
+            // Shift-click functionality
+            const start = Math.min(lastSelectedIndex, currentIndex);
+            const end = Math.max(lastSelectedIndex, currentIndex);
+
+            for (let i = start; i <= end; i++) {
+              const imgToSelect = galleryContainer.children[i];
+              imgToSelect.classList.add('selected');
+              imgToSelect.classList.remove('greyed-out');
+            }
+          } else {
+            // Normal click functionality
+            img.classList.toggle('selected');
+            img.classList.toggle('greyed-out');
+            lastSelectedIndex = currentIndex;
+          }
+        } else {
+          this.lastViewedIndex = index;
+          this.showLargeView(images, index);
+        }
       });
       galleryContainer.appendChild(img);
 
@@ -720,10 +797,50 @@ class ComfyCarousel extends ComfyDialog {
       }
     });
 
+    galleryContainer.addEventListener('mousedown', (e) => {
+      if (isSelectionMode) {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+      }
+    });
+
+    galleryContainer.addEventListener('mousemove', (e) => {
+      if (isDragging && isSelectionMode) {
+        const currentX = e.clientX;
+        const currentY = e.clientY;
+        const dx = currentX - startX;
+        const dy = currentY - startY;
+
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+          const hoveredElement = document.elementFromPoint(currentX, currentY);
+          if (hoveredElement && hoveredElement.tagName === 'IMG') {
+            hoveredElement.classList.add('selected');
+            hoveredElement.classList.remove('greyed-out');
+            lastSelectedIndex = Array.from(galleryContainer.children).indexOf(hoveredElement);
+          }
+        }
+      }
+    });
+
+    galleryContainer.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    galleryContainer.addEventListener('mouseleave', () => {
+      isDragging = false;
+    });
+
+    galleryContainer.addEventListener('dragstart', (e) => {
+      e.preventDefault();
+    });
+
     this.element.innerHTML = '';
+    buttonContainer.appendChild(selectButton);
+    buttonContainer.appendChild(scrollToTopButton);
     this.element.appendChild(galleryContainer);
     this.element.appendChild(sizeSlider);
-    this.element.appendChild(scrollToTopButton);
+    this.element.appendChild(buttonContainer);
 
     const closeButton = document.createElement('button');
     closeButton.className = 'close-gallery';
