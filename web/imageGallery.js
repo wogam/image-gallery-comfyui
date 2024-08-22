@@ -279,14 +279,14 @@ const styles = `
 
 .comfy-carousel .button-container {
   position: fixed;
-  bottom: 20px;
+  bottom: 7px;
   right: 20px;
   display: flex;
   gap: 10px;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
   border-radius: 20px;
-  padding: 7px;
+  padding: 5px;
 }
 
 .comfy-carousel .scroll-to-top,
