@@ -4,6 +4,32 @@ import folder_paths
 from server import PromptServer
 from aiohttp import web
 
+async def remove_folder(request):
+    data = await request.post()
+
+    dir_type = data.get('type', 'output')
+    dir_path = folder_paths.get_directory_by_type(dir_type)
+    if dir_path is None:
+        return web.Response(status=400)
+
+    if 'subfolder' in data:
+        dir_path = os.path.join(dir_path, data['subfolder'])
+
+    foldername = data.get('foldername')
+    if foldername is None:
+        return web.Response(status=400)
+    folder_path = os.path.normpath(os.path.join(dir_path, foldername))
+    if os.path.commonpath([folder_path, dir_path]) != os.path.commonpath([dir_path]):
+        return web.Response(status=403)
+
+    if not os.path.isdir(folder_path):
+        return web.Response(status=404)
+
+    os.rmdir(folder_path)  # Note: This will only work if the directory is empty
+    return web.Response(status=204)
+
+PromptServer.instance.routes.post('/gallery/folder/remove')(remove_folder)
+
 async def remove_image(request):
     data = await request.post()
 
