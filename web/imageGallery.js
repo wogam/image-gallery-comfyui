@@ -346,6 +346,92 @@ const styles = `
   user-select: none;
   -webkit-user-drag: none;
 }
+
+.comfy-carousel .breadcrumb-navigation {
+  position: absolute;
+  top: 25px;
+  left: 100px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.comfy-carousel .breadcrumb-navigation:hover {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.comfy-carousel .breadcrumb-navigation span {
+  margin: 0 5px;
+}
+
+.comfy-carousel .breadcrumb-navigation span.separator {
+  margin: 0;
+}
+
+.comfy-carousel .breadcrumb-navigation button {
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-right: 5px;
+  font-family: 'Roboto', sans-serif;
+}
+
+.comfy-carousel .breadcrumb-navigation button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.folder-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: var(--image-size, 150px);
+  height: var(--image-size, 150px);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+  font-family: 'Roboto', sans-serif;
+}
+
+.folder-button svg {
+  width: 50%; /* Set width to 50% of the button */
+  height: 50%; /* Set height to 50% of the button */
+}
+
+.folder-button:hover {
+  background: rgba(255, 255, 255, 0.1); /* Match hover effect */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.folder-text {
+  margin-top: 8px;
+  font-size: 14px;
+  text-align: center;
+  font-family: 'Roboto', sans-serif;
+}
 `;
 
 const styleSheet = document.createElement("style");
@@ -763,13 +849,46 @@ class ComfyCarousel extends ComfyDialog {
   }
 
   async loadGalleryImages(e) {
-    e.stopPropagation();
-    const response = await fetch("/gallery/images");
+    if (typeof e.stopPropagation === 'function') {
+      e.stopPropagation();
+    }
+
+    const subfolder = e.target.dataset.subfolder || '';
+    const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(subfolder)}`);
     if (!response.ok) {
       alert("Failed to load gallery images");
       return;
     }
-    const images = await response.json();
+    const data = await response.json();
+    const images = data.images;
+    const folders = data.folders;
+    const currentFolder = data.current_folder;
+
+    const breadcrumb = document.createElement('div');
+    breadcrumb.className = 'breadcrumb-navigation';
+
+    // Add 'Home' as the first breadcrumb
+    const homeButton = document.createElement('button');
+    homeButton.textContent = 'Home';
+    homeButton.dataset.subfolder = ''; // Root directory
+    homeButton.addEventListener('click', (e) => {
+      this.loadGalleryImages({ target: { dataset: { subfolder: '' } } });
+    });
+    breadcrumb.appendChild(homeButton);
+
+    const pathSegments = currentFolder.split('/');
+    pathSegments.forEach((segment, index) => {
+      if (segment) {
+        const button = document.createElement('button');
+        button.textContent = segment;
+        button.dataset.subfolder = pathSegments.slice(0, index + 1).join('/');
+        button.addEventListener('click', (e) => {
+          this.loadGalleryImages({ target: { dataset: { subfolder: button.dataset.subfolder } } });
+        });
+        breadcrumb.appendChild(button);
+      }
+    });
+
     const galleryContainer = document.createElement('div');
     galleryContainer.className = 'gallery-container';
 
@@ -884,6 +1003,42 @@ class ComfyCarousel extends ComfyDialog {
     let isDragging = false;
     let startX, startY;
 
+    folders.forEach(folder => {
+      const folderButton = document.createElement('button');
+      folderButton.className = 'folder-button';
+
+      // Create an SVG folder icon
+      const folderIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      folderIcon.setAttribute("width", "40"); // Adjust size as needed
+      folderIcon.setAttribute("height", "40");
+      folderIcon.setAttribute("viewBox", "0 0 90 90");
+      folderIcon.setAttribute("fill", "none");
+      folderIcon.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      folderIcon.innerHTML = `
+      <g transform="translate(1.4065934065934016 1.4065934065934016) scale(1 1)">
+        <path d="M 86.351 17.027 H 35.525 c -1.909 0 -3.706 -0.903 -4.846 -2.435 l -2.457 -3.302 c -0.812 -1.092 -2.093 -1.735 -3.454 -1.735 H 3.649 C 1.634 9.556 0 11.19 0 13.205 V 29.11 c 0 -2.015 1.634 -1.649 3.649 -1.649 h 82.703 c 2.015 0 3.649 -0.366 3.649 1.649 v -8.435 C 90 18.661 88.366 17.027 86.351 17.027 z" fill="rgb(48,168,249)"/>
+        <path d="M 86.351 80.444 H 3.649 C 1.634 80.444 0 78.81 0 76.795 V 29.11 c 0 -2.015 1.634 -3.649 3.649 -3.649 h 82.703 c 2.015 0 3.649 1.634 3.649 3.649 v 47.685 C 90 78.81 88.366 80.444 86.351 80.444 z" fill="rgb(42,152,234)"/>
+      </g>
+      `;
+
+      folderButton.appendChild(folderIcon); // Add the SVG to the button
+
+      const folderText = document.createElement('span');
+      folderText.textContent = folder;
+      folderText.className = 'folder-text';
+      folderButton.appendChild(folderText);
+
+      // Ensure the event listener is on the entire button
+      folderButton.dataset.subfolder = currentFolder ? `${currentFolder}/${folder}` : folder;
+      folderButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        this.loadGalleryImages({ target: folderButton });
+      });
+
+      galleryContainer.appendChild(folderButton);
+    });
+
+
     images.forEach((src, index) => {
       const img = new Image();
       img.dataset.src = src;
@@ -973,6 +1128,7 @@ class ComfyCarousel extends ComfyDialog {
     buttonContainer.appendChild(deleteButton); // Add delete button
     buttonContainer.appendChild(selectButton);
     buttonContainer.appendChild(scrollToTopButton);
+    this.element.appendChild(breadcrumb);
     this.element.appendChild(galleryContainer);
     this.element.appendChild(sizeSlider);
     this.element.appendChild(buttonContainer);
