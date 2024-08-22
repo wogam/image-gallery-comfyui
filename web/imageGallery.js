@@ -217,11 +217,60 @@ const styles = `
 
 .gallery-size-slider {
   position: fixed;
-  bottom: 20px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   width: 200px;
+  height: 40px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  padding: 0 15px;
+  appearance: none;
+  outline: none;
+  opacity: 0.7;
+  transition: opacity 0.2s;
   z-index: 10000;
+}
+
+.gallery-size-slider:hover {
+  opacity: 1;
+}
+
+.gallery-size-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.gallery-size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 4px;
+  height: 20px;
+  background: #ffffff;
+  cursor: pointer;
+  border-radius: 2px;
+  margin-top: -8px; /* to center the thumb on the track */
+}
+
+.gallery-size-slider::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.gallery-size-slider::-moz-range-thumb {
+  width: 4px;
+  height: 20px;
+  background: #ffffff;
+  cursor: pointer;
+  border-radius: 2px;
+  border: none;
 }
 
 .comfy-carousel .gallery-container img.selected {
@@ -456,9 +505,19 @@ class ComfyCarousel extends ComfyDialog {
   updateZoom() {
     const activeImage = this.getActive();
     if (activeImage) {
-      activeImage.style.transform = `scale(${this.scale}) translate(${this.translateX}px, ${this.translateY}px)`;
+      const rect = activeImage.getBoundingClientRect();
+      const containerRect = activeImage.parentElement.getBoundingClientRect();
+
+      const maxX = Math.max(0, (rect.width * this.scale - containerRect.width) / 2);
+      const maxY = Math.max(0, (rect.height * this.scale - containerRect.height) / 2);
+
+      this.translateX = Math.max(-maxX, Math.min(maxX, this.translateX));
+      this.translateY = Math.max(-maxY, Math.min(maxY, this.translateY));
+
+      activeImage.style.transform = `scale(${this.scale}) translate(${this.translateX / this.scale}px, ${this.translateY / this.scale}px)`;
     }
   }
+
 
   resetZoom() {
     this.scale = 1;
@@ -607,8 +666,17 @@ class ComfyCarousel extends ComfyDialog {
 
     slidesContainer.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
-      this.translateX = e.clientX - startX;
-      this.translateY = e.clientY - startY;
+
+      const activeImage = this.getActive();
+      const rect = activeImage.getBoundingClientRect();
+      const containerRect = slidesContainer.getBoundingClientRect();
+
+      const maxX = Math.max(0, (rect.width * this.scale - containerRect.width) / 2);
+      const maxY = Math.max(0, (rect.height * this.scale - containerRect.height) / 2);
+
+      this.translateX = Math.max(-maxX, Math.min(maxX, e.clientX - startX));
+      this.translateY = Math.max(-maxY, Math.min(maxY, e.clientY - startY));
+
       this.updateZoom();
     });
 
@@ -625,23 +693,18 @@ class ComfyCarousel extends ComfyDialog {
     slidesContainer.addEventListener('wheel', (e) => {
       e.preventDefault();
       const scaleChange = e.deltaY > 0 ? 0.9 : 1.1;
+      const oldScale = this.scale;
       this.scale = Math.max(0.1, Math.min(10, this.scale * scaleChange));
+
+      // Adjust translation to keep the point under the cursor fixed
+      const rect = this.getActive().getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      this.translateX = mouseX - (mouseX - this.translateX) * (this.scale / oldScale);
+      this.translateY = mouseY - (mouseY - this.translateY) * (this.scale / oldScale);
+
       this.updateZoom();
-    });
-
-    slidesContainer.addEventListener('mousemove', (e) => {
-      if (e.buttons === 1) {
-        const rect = this.getActive().getBoundingClientRect();
-        const containerRect = slidesContainer.getBoundingClientRect();
-
-        const maxX = (rect.width * this.scale - containerRect.width) / 2;
-        const maxY = (rect.height * this.scale - containerRect.height) / 2;
-
-        this.translateX = Math.max(-maxX, Math.min(maxX, this.translateX + e.movementX));
-        this.translateY = Math.max(-maxY, Math.min(maxY, this.translateY + e.movementY));
-
-        this.updateZoom();
-      }
     });
   }
 
@@ -830,10 +893,15 @@ class ComfyCarousel extends ComfyDialog {
             hoveredElement.classList.add('selected');
             hoveredElement.classList.remove('greyed-out');
             lastSelectedIndex = Array.from(galleryContainer.children).indexOf(hoveredElement);
+
+            // Check if any images are selected and show/hide the delete button
+            const anySelected = galleryContainer.querySelector('img.selected');
+            deleteButton.style.display = anySelected ? 'block' : 'none';
           }
         }
       }
     });
+
 
     galleryContainer.addEventListener('mouseup', () => {
       isDragging = false;
@@ -944,6 +1012,10 @@ class ComfyCarousel extends ComfyDialog {
       case "d":
       case "D":
         this.resetZoom();
+        break;
+      case "o":
+        this.loadImage();
+        this.close();
         break;
     }
   }
