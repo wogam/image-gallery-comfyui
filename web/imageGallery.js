@@ -619,6 +619,12 @@ class ComfyCarousel extends ComfyDialog {
   }
 
   selectImage(slide) {
+    if (!slide) {
+      this.element.querySelector('.slides').innerHTML = '<div class="no-images">No images found in this directory.</div>';
+      this.element.querySelector('.dots').innerHTML = '';
+      return;
+    }
+
     let active = this.getActive();
     if (active) {
       active.classList.remove('shown');
@@ -637,7 +643,6 @@ class ComfyCarousel extends ComfyDialog {
 
     slide._dot.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 
-    // Store the current folder path
     this.currentFolderPath = slide.dataset.folderPath || '';
   }
 
