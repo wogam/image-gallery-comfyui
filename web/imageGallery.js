@@ -5,17 +5,11 @@ const styles = `
 .comfy-carousel {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   justify-content: center;
   align-items: center;
   background: rgba(0,0,0,0.8);
   z-index: 9999;
-}
-
-.comfy-carousel {
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
@@ -30,9 +24,6 @@ const styles = `
 }
 
 .comfy-carousel-box {
-  margin: 0 auto;
-  text-align: center;
-  position: relative;
   width: 90vw;
   height: 90vh;
   display: flex;
@@ -43,7 +34,6 @@ const styles = `
 
 .comfy-carousel-box .slides {
   flex-grow: 1;
-  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -71,14 +61,16 @@ const styles = `
   backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 7px;
-  height: fit-content; /* Update this property */
+  height: fit-content;
 }
 
 .comfy-carousel-box .remove,
 .comfy-carousel-box .close,
 .comfy-carousel-box .gallery,
 .comfy-carousel-box .reset-zoom,
-.comfy-carousel-box .load {
+.comfy-carousel-box .load,
+.comfy-carousel-box .prev,
+.comfy-carousel-box .next {
   background: transparent;
   color: #fff;
   border: none;
@@ -97,32 +89,21 @@ const styles = `
 .comfy-carousel-box .next {
   position: absolute;
   background: rgba(0,0,0,0.5);
-  color: #fff;
-  border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: background 0.3s;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .comfy-carousel-box .remove:hover,
 .comfy-carousel-box .close:hover,
 .comfy-carousel-box .gallery:hover,
 .comfy-carousel-box .reset-zoom:hover,
-.comfy-carousel-box .load:hover {
+.comfy-carousel-box .load:hover,
+.comfy-carousel-box .prev:hover,
+.comfy-carousel-box .next:hover {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
-
-.comfy-carousel-box .prev:hover,
-.comfy-carousel-box .next:hover {
-  background: rgba(0,0,0,0.8);
 }
 
 .comfy-carousel-box .remove:hover { background-color: rgba(255, 105, 97, 0.3); }
@@ -131,10 +112,6 @@ const styles = `
 .comfy-carousel-box .load:hover { background-color: rgba(193, 225, 193, 0.3); }
 
 .comfy-carousel-box .dots {
-  position: relative;
-  bottom: 0;
-  left: 0;
-  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -145,13 +122,13 @@ const styles = `
   white-space: nowrap;
 }
 
-.comfy-carousel-box .reset-zoom { top: 20px; right: 220px; }
-.comfy-carousel-box .load { top: 20px; right: 170px; }
-.comfy-carousel-box .remove { top: 20px; right: 120px; }
-.comfy-carousel-box .gallery { top: 20px; right: 70px; }
-.comfy-carousel-box .close { top: 20px; right: 20px; }
-.comfy-carousel-box .prev { left: 20px; top: 50%; transform: translateY(-50%); }
-.comfy-carousel-box .next { right: 20px; top: 50%; transform: translateY(-50%); }
+.comfy-carousel-box .reset-zoom { right: 220px; }
+.comfy-carousel-box .load { right: 170px; }
+.comfy-carousel-box .remove { right: 120px; }
+.comfy-carousel-box .gallery { right: 70px; }
+.comfy-carousel-box .close { right: 20px; }
+.comfy-carousel-box .prev { left: 20px; }
+.comfy-carousel-box .next { right: 20px; }
 
 .comfy-carousel-box .dots::-webkit-scrollbar {
   height: 8px;
@@ -193,9 +170,6 @@ const styles = `
   width: 90vw;
   overflow-y: auto;
   background: rgba(0,0,0,0.8);
-}
-
-.gallery-container {
   transition: opacity 0.5s ease, transform 0.5s ease;
   opacity: 0;
 }
@@ -210,10 +184,20 @@ const styles = `
   object-fit: cover;
   cursor: pointer;
   transition: transform 0.3s ease;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .comfy-carousel .gallery-container img:hover {
   transform: scale(1.05);
+}
+
+.comfy-carousel .gallery-container img.selected {
+  box-shadow: 0 0 0 2px #add8e6;
+}
+
+.comfy-carousel .gallery-container img.greyed-out {
+  filter: grayscale(60%) brightness(60%);
 }
 
 .comfy-carousel .close-gallery {
@@ -235,7 +219,7 @@ const styles = `
 }
 
 .comfy-carousel .close-gallery:hover {
-  background: rgba(255, 255, 255, 0.1); /* Match hover effect */
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
@@ -272,13 +256,12 @@ const styles = `
 
 .gallery-size-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
   width: 4px;
   height: 20px;
   background: #ffffff;
   cursor: pointer;
   border-radius: 2px;
-  margin-top: -8px; /* to center the thumb on the track */
+  margin-top: -8px;
 }
 
 .gallery-size-slider::-moz-range-track {
@@ -296,10 +279,6 @@ const styles = `
   cursor: pointer;
   border-radius: 2px;
   border: none;
-}
-
-.comfy-carousel .gallery-container img.selected {
-  box-shadow: 0 0 0 2px #add8e6;
 }
 
 .comfy-carousel .button-container {
@@ -335,15 +314,6 @@ const styles = `
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
-
-.comfy-carousel .gallery-container img.greyed-out {
-  filter: grayscale(60%) brightness(60%);
-}
-
-.comfy-carousel .gallery-container img {
-  user-select: none;
-  -webkit-user-drag: none;
 }
 
 .comfy-carousel .breadcrumb-navigation {
@@ -406,17 +376,6 @@ const styles = `
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
-.folder-button.greyed-out {
-  filter: grayscale(60%) brightness(60%);
-  transition: filter 0.3s;
-}
-
-/* Selected folders */
-.folder-button.selected {
-  box-shadow: 0 0 0 2px #add8e6; /* Light blue border for selected folders */
-  transition: box-shadow 0.3s;
-}
-
 .folder-button {
   display: flex;
   flex-direction: column;
@@ -434,13 +393,23 @@ const styles = `
   font-family: 'Roboto', sans-serif;
 }
 
+.folder-button.greyed-out {
+  filter: grayscale(60%) brightness(60%);
+  transition: filter 0.3s;
+}
+
+.folder-button.selected {
+  box-shadow: 0 0 0 2px #add8e6;
+  transition: box-shadow 0.3s;
+}
+
 .folder-button svg {
-  width: 50%; /* Set width to 50% of the button */
-  height: 50%; /* Set height to 50% of the button */
+  width: 50%;
+  height: 50%;
 }
 
 .folder-button:hover {
-  background: rgba(255, 255, 255, 0.1); /* Match hover effect */
+  background: rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   transform: scale(1.05);
 }
@@ -462,7 +431,7 @@ function parseExifData(exifData) {
   const isLittleEndian = new Uint16Array(exifData.slice(0, 2))[0] === 0x4949;
 
   function readInt(offset, isLittleEndian, length) {
-    let arr = exifData.slice(offset, offset + length)
+    let arr = exifData.slice(offset, offset + length);
     if (length === 2) {
       return new DataView(arr.buffer, arr.byteOffset, arr.byteLength).getUint16(0, isLittleEndian);
     } else if (length === 4) {
@@ -485,7 +454,6 @@ function parseExifData(exifData) {
 
       let value;
       if (type === 2) {
-        // ASCII string
         value = String.fromCharCode(...exifData.slice(valueOffset, valueOffset + numValues - 1));
       }
 
@@ -495,8 +463,7 @@ function parseExifData(exifData) {
     return result;
   }
 
-  const ifdData = parseIFD(ifdOffset);
-  return ifdData;
+  return parseIFD(ifdOffset);
 }
 
 function readFile(file) {
@@ -511,96 +478,60 @@ function readFile(file) {
 
 function extractMetadataFromExif(array) {
   const data = parseExifData(array);
-
-  // Look for the UserComment EXIF tag
   let userComment = data[0x9286];
   if (userComment) {
     try {
       return JSON.parse(userComment);
-    } catch (e) {
-      // Ignore non-JSON contents
-    }
+    } catch (e) { }
   }
-
   return null;
 }
 
 async function getWebpMetadata(file) {
   const dataView = await readFile(file);
-
-  // Check WEBP signature
-  if (dataView.getUint32(0) !== 0x52494646 || dataView.getUint32(8) !== 0x57454250)
-    return null;
-
-  // Go through the chunks
+  if (dataView.getUint32(0) !== 0x52494646 || dataView.getUint32(8) !== 0x57454250) return null;
   let offset = 12;
   while (offset < dataView.byteLength) {
     const chunkType = dataView.getUint32(offset);
     const chunkLength = dataView.getUint32(offset + 4, true);
-    if (chunkType == 0x45584946)  // EXIF
-    {
+    if (chunkType == 0x45584946) {
       const data = extractMetadataFromExif(new Uint8Array(dataView.buffer, offset + 8, chunkLength));
-      if (data)
-        return data;
+      if (data) return data;
     }
     offset += 8 + chunkLength;
   }
-
   return null;
 }
 
 async function getJpegMetadata(file) {
   const dataView = await readFile(file);
-
-  // Check that the JPEG SOI segment is present
-  if (dataView.getUint16(0) !== 0xFFD8)
-    return null;
-
-  // Go through other segments
+  if (dataView.getUint16(0) !== 0xFFD8) return null;
   let offset = 2;
   while (offset < dataView.byteLength) {
     const segmentType = dataView.getUint16(offset);
-    if (segmentType == 0xFFD9 || (segmentType & 0xFF00) != 0xFF00) {
-      // EOI segment or invalid segment type
-      break;
-    }
-
+    if (segmentType == 0xFFD9 || (segmentType & 0xFF00) != 0xFF00) break;
     const segmentLength = dataView.getUint16(offset + 2);
-    if (segmentLength < 2) {
-      // Invalid segment length
-      break;
-    }
-
+    if (segmentLength < 2) break;
     if (segmentType == 0xFFE1 && segmentLength > 8) {
-      // APP1 segment contains EXIF data
-      // Skip next six bytes ("Exif\0\0"), not part of EXIF data
       const data = extractMetadataFromExif(new Uint8Array(dataView.buffer, offset + 10, segmentLength - 8));
-      if (data)
-        return data;
+      if (data) return data;
     }
     offset += 2 + segmentLength;
   }
-
   return null;
 }
 
 function getMetadata(file) {
-  if (file.type === "image/webp")
-    return getWebpMetadata(file);
-  else if (file.type == "image/jpeg")
-    return getJpegMetadata(file);
-  else
-    return null;
+  if (file.type === "image/webp") return getWebpMetadata(file);
+  else if (file.type == "image/jpeg") return getJpegMetadata(file);
+  else return null;
 }
 
 async function handleFile(origHandleFile, file, ...args) {
   const metadata = await getMetadata(file);
-  if (metadata && metadata.workflow)
-    app.loadGraphData(metadata.workflow);
-  else if (metadata && metadata.prompt)
-    app.loadApiJson(metadata.prompt);
-  else
-    return origHandleFile.call(this, file, ...args);
+  if (metadata && metadata.workflow) app.loadGraphData(metadata.workflow);
+  else if (metadata && metadata.prompt) app.loadApiJson(metadata.prompt);
+  else return origHandleFile.call(this, file, ...args);
 }
 
 function createGallerySVG(width = "1em", height = "1em", fontSize = "20px") {
@@ -633,6 +564,7 @@ class ComfyCarousel extends ComfyDialog {
     this.translateX = 0;
     this.translateY = 0;
     this.lastViewedIndex = 0;
+    this.currentFolderPath = '';
     this.onKeydown = this.onKeydown.bind(this);
     this.element.classList.replace("comfy-modal", "comfy-carousel");
     this.element.addEventListener('click', (e) => {
@@ -704,6 +636,9 @@ class ComfyCarousel extends ComfyDialog {
     allDots.forEach((dot, i) => dot.style.display = i >= startIndex && i <= endIndex ? 'inline-block' : 'none');
 
     slide._dot.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    // Store the current folder path
+    this.currentFolderPath = slide.dataset.folderPath || '';
   }
 
   async loadImage() {
@@ -850,12 +785,10 @@ class ComfyCarousel extends ComfyDialog {
       const oldScale = this.scale;
       this.scale = Math.max(0.1, Math.min(10, this.scale * scaleChange));
 
-      // Get the mouse position relative to the image
       const rect = this.getActive().getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      // Calculate the new translation
       const newTranslateX = mouseX - (mouseX - this.translateX * oldScale) * (this.scale / oldScale);
       const newTranslateY = mouseY - (mouseY - this.translateY * oldScale) * (this.scale / oldScale);
 
@@ -872,7 +805,7 @@ class ComfyCarousel extends ComfyDialog {
       e.stopPropagation();
     }
 
-    const subfolder = e.target.dataset.subfolder || '';
+    const subfolder = this.currentFolderPath || e.target.dataset.subfolder || '';
     const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(subfolder)}`);
     if (!response.ok) {
       alert("Failed to load gallery images");
@@ -986,8 +919,14 @@ class ComfyCarousel extends ComfyDialog {
           break;
         }
       }
-
+      isSelectionMode = false;
+      selectButton.innerHTML = '&#10003;';
+      galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
+        item.classList.remove('greyed-out');
+        item.classList.remove('selected');
+      });
       deleteButton.style.display = 'none';
+      lastSelectedIndex = -1;
     });
 
     const buttonContainer = document.createElement('div');
@@ -1116,7 +1055,7 @@ class ComfyCarousel extends ComfyDialog {
           deleteButton.style.display = anySelected ? 'block' : 'none';
         } else {
           this.lastViewedIndex = index;
-          this.showLargeView(images, index);
+          this.showLargeView(images, index, currentFolder);
         }
       });
       galleryContainer.appendChild(img);
@@ -1200,11 +1139,12 @@ class ComfyCarousel extends ComfyDialog {
     return galleryContainer;
   }
 
-  showLargeView(images, activeIndex) {
+  showLargeView(images, activeIndex, currentFolder) {
     this.element.innerHTML = '';
     const slides = images.map(src => {
       const img = new Image();
       img.src = src;
+      img.dataset.folderPath = currentFolder; // Use currentFolder here
       return img;
     });
     this.setupCarousel(slides, activeIndex);
@@ -1312,7 +1252,7 @@ class ComfyCarousel extends ComfyDialog {
         galleryContainer.remove();
       }
       super.close();
-    }, 500); // Match this duration with the CSS transition duration
+    }, 500);
   }
 }
 
