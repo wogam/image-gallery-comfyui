@@ -450,6 +450,85 @@ const styles = `
   text-align: center;
   font-family: 'Roboto', sans-serif;
 }
+
+.move-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 20000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.move-popup {
+  background-color: white;
+  color: black;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  z-index: 20001;
+  width: 300px;
+  max-height: 80%;
+  overflow-y: auto;
+}
+
+.move-popup h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.folder-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 15px;
+}
+
+.folder-list div {
+  margin-bottom: 10px;
+}
+
+.popup-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.popup-buttons button {
+  margin-left: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.comfy-carousel .move {
+  background: transparent;
+  color: #fff;
+  border: none;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  margin-top: 0px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s, backdrop-filter 0.3s;
+  border-radius: 8px;
+}
+
+.comfy-carousel .move:hover {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.comfy-carousel .move svg {
+  width: 24px;
+  height: 24px;
+}
+
 `;
 
 const styleSheet = document.createElement("style");
@@ -906,6 +985,12 @@ class ComfyCarousel extends ComfyDialog {
       galleryContainer.scrollTop = 0;
     });
 
+    const updateButtonVisibility = () => {
+      const anySelected = galleryContainer.querySelector('.folder-button.selected, img.selected');
+      deleteButton.style.display = anySelected ? 'block' : 'none';
+      moveButton.style.display = anySelected ? 'block' : 'none';
+    };
+
     const selectButton = document.createElement('button');
     selectButton.className = 'select-images';
     selectButton.innerHTML = '&#10003;';
@@ -920,20 +1005,115 @@ class ComfyCarousel extends ComfyDialog {
             item.classList.add('greyed-out');
           }
         });
-        deleteButton.style.display = 'none'; // Hide delete button initially
+        updateButtonVisibility();
       } else {
         selectButton.innerHTML = '&#10003;';
         galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
           item.classList.remove('greyed-out');
           item.classList.remove('selected');
         });
-        deleteButton.style.display = 'none';
-        confirmDelete = false; // Reset confirmDelete flag
+        updateButtonVisibility();
+        confirmDelete = false;
         deleteButton.innerHTML = deleteButtonSVG;
         lastSelectedIndex = -1;
       }
       updateImageCount();
     });
+
+    const moveButton = document.createElement('button');
+    moveButton.className = 'move scroll-to-top select-images';
+    moveButton.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M14 18V16H10V18H14ZM3 6V8H21V6H3ZM7 13H17V11H7V13Z" fill="currentColor"/>
+    </svg>`;
+    moveButton.style.display = 'none';
+    moveButton.addEventListener('click', () => {
+      const overlay = document.createElement('div');
+      overlay.className = 'move-overlay';
+
+      const popup = document.createElement('div');
+      popup.className = 'move-popup';
+      popup.innerHTML = `
+    <h3>Select destination folder:</h3>
+    <div class="folder-list"></div>
+    <div class="popup-buttons">
+      <button class="ok-button">OK</button>
+      <button class="cancel-button">Cancel</button>
+    </div>
+  `;
+
+      const folderList = popup.querySelector('.folder-list');
+      folders.forEach(folder => {
+        const folderItem = document.createElement('div');
+        folderItem.innerHTML = `
+      <input type="radio" name="destination" value="${folder}" id="${folder}">
+      <label for="${folder}">${folder}</label>
+    `;
+        folderList.appendChild(folderItem);
+      });
+
+      const okButton = popup.querySelector('.ok-button');
+      const cancelButton = popup.querySelector('.cancel-button');
+
+      okButton.addEventListener('click', async () => {
+        const selectedFolder = popup.querySelector('input[name="destination"]:checked');
+        if (selectedFolder) {
+          const destinationFolder = selectedFolder.value;
+          const selectedItems = galleryContainer.querySelectorAll('.folder-button.selected, img.selected');
+
+          for (const item of selectedItems) {
+            try {
+              let response;
+              if (item.tagName === 'IMG') {
+                const imageId = item.dataset.src.split("?")[1];
+                response = await fetch("/gallery/image/move", {
+                  method: "POST",
+                  body: new URLSearchParams({
+                    ...Object.fromEntries(new URLSearchParams(imageId)),
+                    destination: destinationFolder
+                  }),
+                  headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                  }
+                });
+              } else if (item.classList.contains('folder-button')) {
+                const folderName = item.querySelector('.folder-text').textContent;
+                response = await fetch("/gallery/folder/move", {
+                  method: "POST",
+                  body: new URLSearchParams({
+                    foldername: folderName,
+                    destination: destinationFolder
+                  }),
+                  headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                  }
+                });
+              }
+
+              if (!response.ok) {
+                throw new Error(`Failed to move item: ${response.statusText}`);
+              }
+
+              item.remove();
+            } catch (error) {
+              console.error('Error moving item:', error);
+              alert('Failed to move some items. Please try again.');
+              break;
+            }
+          }
+
+          this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+        }
+        overlay.remove();
+      });
+
+      cancelButton.addEventListener('click', () => {
+        overlay.remove();
+      });
+
+      overlay.appendChild(popup);
+      document.body.appendChild(overlay);
+    });
+
 
     const deleteButton = document.createElement('button');
     deleteButton.className = 'remove scroll-to-top select-images';
@@ -1079,7 +1259,7 @@ class ComfyCarousel extends ComfyDialog {
           folderButton.classList.toggle('greyed-out');
 
           const anySelected = galleryContainer.querySelector('.folder-button.selected, img.selected');
-          deleteButton.style.display = anySelected ? 'block' : 'none';
+          updateButtonVisibility();
           updateImageCount();
         } else {
           this.loadGalleryImages({ target: folderButton });
@@ -1113,7 +1293,7 @@ class ComfyCarousel extends ComfyDialog {
           }
 
           const anySelected = galleryContainer.querySelector('img.selected');
-          deleteButton.style.display = anySelected ? 'block' : 'none';
+          updateButtonVisibility();
           updateImageCount();
         } else {
           this.lastViewedIndex = index;
@@ -1152,7 +1332,7 @@ class ComfyCarousel extends ComfyDialog {
             lastSelectedIndex = Array.from(galleryContainer.children).indexOf(hoveredElement);
 
             const anySelected = galleryContainer.querySelector('img.selected');
-            deleteButton.style.display = anySelected ? 'block' : 'none';
+            updateButtonVisibility();
             updateImageCount();
           }
         }
@@ -1173,6 +1353,7 @@ class ComfyCarousel extends ComfyDialog {
 
     this.element.innerHTML = '';
     buttonContainer.appendChild(deleteButton);
+    buttonContainer.appendChild(moveButton);
     buttonContainer.appendChild(selectButton);
     buttonContainer.appendChild(scrollToTopButton);
     this.element.appendChild(breadcrumbContainer);
