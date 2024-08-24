@@ -231,7 +231,7 @@ const styles = `
   background: rgba(0, 0, 0, 0.8);
   transition: opacity 0.5s ease, transform 0.5s ease;
   opacity: 0;
-  margin-top: 5%;
+  margin-top: 4.5%;
 }
 
 .gallery-container.show {
@@ -246,6 +246,7 @@ const styles = `
   transition: transform 0.3s ease;
   user-select: none;
   -webkit-user-drag: none;
+  margin-top: 10px;
 }
 
 .comfy-carousel .gallery-container img:hover {
@@ -413,7 +414,7 @@ const styles = `
   justify-content: center;
   width: var(--image-size, 150px);
   height: var(--image-size, 150px);
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
   border: none;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -421,6 +422,7 @@ const styles = `
   cursor: pointer;
   transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
   font-family: 'Roboto', sans-serif;
+  margin-top: 10px;
 }
 
 .folder-button.greyed-out {
@@ -430,7 +432,6 @@ const styles = `
 
 .folder-button.selected {
   box-shadow: 0 0 0 2px #add8e6;
-  transition: box-shadow 0.3s;
 }
 
 .folder-button svg {
@@ -439,7 +440,7 @@ const styles = `
 }
 
 .folder-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   transform: scale(1.05);
 }
@@ -474,6 +475,10 @@ const styles = `
   width: 300px;
   max-height: 80%;
   overflow-y: auto;
+  background: rgba(0, 0, 0, 1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
+  font-family: 'Roboto', sans-serif;
 }
 
 .move-popup h3 {
@@ -811,13 +816,13 @@ class ComfyCarousel extends ComfyDialog {
           onclick: async (e) => {
             if (this.isGalleryCarousel) {
               if (!this.element.querySelector('.gallery-container')) {
-                const galleryContainer = await this.loadGalleryImages(e);
+                const galleryContainer = await this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
                 this.scrollToLastViewedImage(galleryContainer);
               }
             } else {
               app.ui.nodeCarousel.close();
               if (!app.ui.galleryCarousel.element.querySelector('.gallery-container')) {
-                const galleryContainer = await app.ui.galleryCarousel.loadGalleryImages(e);
+                const galleryContainer = await app.ui.galleryCarousel.loadGalleryImages({ target: { dataset: { subfolder: app.ui.galleryCarousel.currentFolderPath } } });
                 app.ui.galleryCarousel.scrollToLastViewedImage(galleryContainer);
               }
             }
@@ -921,7 +926,7 @@ class ComfyCarousel extends ComfyDialog {
       e.stopPropagation();
     }
 
-    const subfolder = this.currentFolderPath || e.target.dataset.subfolder || '';
+    const subfolder = e.target.dataset.subfolder || '';
     const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(subfolder)}`);
     if (!response.ok) {
       alert("Failed to load gallery images");
@@ -931,6 +936,7 @@ class ComfyCarousel extends ComfyDialog {
     const images = data.images;
     const folders = data.folders;
     const currentFolder = data.current_folder;
+    this.currentFolderPath = subfolder; 
 
     const breadcrumbContainer = document.createElement('div');
     breadcrumbContainer.className = 'breadcrumb-container';
@@ -1034,6 +1040,7 @@ class ComfyCarousel extends ComfyDialog {
       popup.className = 'move-popup';
       popup.innerHTML = `
     <h3>Select destination folder:</h3>
+    <div class="breadcrumb-container"></div>
     <div class="folder-list"></div>
     <div class="popup-buttons">
       <button class="ok-button">OK</button>
@@ -1041,67 +1048,116 @@ class ComfyCarousel extends ComfyDialog {
     </div>
   `;
 
+      const breadcrumbContainer = popup.querySelector('.breadcrumb-container');
       const folderList = popup.querySelector('.folder-list');
-      folders.forEach(folder => {
-        const folderItem = document.createElement('div');
-        folderItem.innerHTML = `
-      <input type="radio" name="destination" value="${folder}" id="${folder}">
-      <label for="${folder}">${folder}</label>
-    `;
-        folderList.appendChild(folderItem);
-      });
-
       const okButton = popup.querySelector('.ok-button');
       const cancelButton = popup.querySelector('.cancel-button');
 
-      okButton.addEventListener('click', async () => {
-        const selectedFolder = popup.querySelector('input[name="destination"]:checked');
-        if (selectedFolder) {
-          const destinationFolder = selectedFolder.value;
-          const selectedItems = galleryContainer.querySelectorAll('.folder-button.selected, img.selected');
+      let currentPath = '';
 
-          for (const item of selectedItems) {
-            try {
-              let response;
-              if (item.tagName === 'IMG') {
-                const imageId = item.dataset.src.split("?")[1];
-                response = await fetch("/gallery/image/move", {
-                  method: "POST",
-                  body: new URLSearchParams({
-                    ...Object.fromEntries(new URLSearchParams(imageId)),
-                    destination: destinationFolder
-                  }),
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                  }
-                });
-              } else if (item.classList.contains('folder-button')) {
-                const folderName = item.querySelector('.folder-text').textContent;
-                response = await fetch("/gallery/folder/move", {
-                  method: "POST",
-                  body: new URLSearchParams({
-                    foldername: folderName,
-                    destination: destinationFolder
-                  }),
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                  }
-                });
-              }
+      const updateBreadcrumb = (path) => {
+        breadcrumbContainer.innerHTML = '';
+        const pathSegments = path.split('/').filter(segment => segment !== '');
+        pathSegments.unshift('home');
 
-              if (!response.ok) {
-                throw new Error(`Failed to move item: ${response.statusText}`);
-              }
+        pathSegments.forEach((segment, index) => {
+          const crumb = document.createElement('button');
+          crumb.textContent = segment;
+          crumb.addEventListener('click', () => {
+            const newPath = pathSegments.slice(1, index + 1).join('/');
+            updateFolderList(newPath);
+          });
+          breadcrumbContainer.appendChild(crumb);
 
-              item.remove();
-            } catch (error) {
-              console.error('Error moving item:', error);
-              alert('Failed to move some items. Please try again.');
-              break;
-            }
+          if (index < pathSegments.length - 1) {
+            const separator = document.createElement('span');
+            separator.textContent = ' / ';
+            separator.className = 'separator';
+            breadcrumbContainer.appendChild(separator);
           }
+        });
 
-          this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+        const addButton = document.createElement('button');
+        addButton.textContent = '+';
+        addButton.addEventListener('click', () => {
+          updateFolderList(path);
+        });
+        breadcrumbContainer.appendChild(addButton);
+      };
+
+      const updateFolderList = async (path) => {
+        currentPath = path;
+        const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(path)}`);
+        if (!response.ok) {
+          alert("Failed to load folders");
+          return;
+        }
+        const data = await response.json();
+        const folders = data.folders;
+
+        folderList.innerHTML = '';
+        folders.forEach(folder => {
+          const folderItem = document.createElement('div');
+          folderItem.textContent = folder;
+          folderItem.addEventListener('click', () => {
+            updateFolderList(`${path}/${folder}`.replace(/^\//, ''));
+          });
+          folderList.appendChild(folderItem);
+        });
+
+        updateBreadcrumb(path);
+      };
+
+      updateFolderList('');
+
+      okButton.addEventListener('click', async () => {
+        const selectedFolder = currentPath;
+        if (selectedFolder !== undefined) {
+          const selectedItems = galleryContainer.querySelectorAll('.folder-button.selected, img.selected');
+          const itemsToMove = Array.from(selectedItems).map(item => {
+            if (item.tagName === 'IMG') {
+              const imageParams = new URLSearchParams(item.dataset.src.split("?")[1]);
+              return {
+                type: 'image',
+                subfolder: imageParams.get('subfolder') || '',
+                name: imageParams.get('filename')
+              };
+            } else if (item.classList.contains('folder-button')) {
+              const folderPath = item.dataset.subfolder;
+              const folderName = item.querySelector('.folder-text').textContent;
+              const subfolder = folderPath.replace(`/${folderName}`, ''); // Correctly construct the subfolder path
+              return {
+                type: 'folder',
+                subfolder: subfolder,
+                name: folderName
+              };
+            }
+          });
+
+          try {
+            const response = await fetch("/gallery/items/move", {
+              method: "POST",
+              body: new URLSearchParams({
+                type: 'output',
+                destination: selectedFolder, // Use the currentPath as the destination
+                items: JSON.stringify(itemsToMove)
+              }),
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+              }
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Failed to move items: ${response.statusText}. Server message: ${errorText}`);
+            }
+
+            selectedItems.forEach(item => item.remove());
+            this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+          } catch (error) {
+            console.error('Error moving items:', error);
+            alert(`Failed to move items. Error: ${error.message}`);
+          }
         }
         overlay.remove();
       });
@@ -1113,6 +1169,7 @@ class ComfyCarousel extends ComfyDialog {
       overlay.appendChild(popup);
       document.body.appendChild(overlay);
     });
+
 
 
     const deleteButton = document.createElement('button');
@@ -1130,22 +1187,36 @@ class ComfyCarousel extends ComfyDialog {
         for (const item of selectedItems) {
           try {
             let response;
+            let requestData;
             if (item.tagName === 'IMG') {
-              const imageId = item.dataset.src.split("?")[1];
+              const imageParams = new URLSearchParams(item.dataset.src.split("?")[1]);
+              requestData = {
+                type: 'output',
+                subfolder: imageParams.get('subfolder') || '',
+                filename: imageParams.get('filename')
+              }
+              console.log('Deleting image:', requestData);
+
               response = await fetch("/gallery/image/remove", {
                 method: "POST",
-                body: imageId,
+                body: new URLSearchParams(requestData),
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded"
                 }
               });
             } else if (item.classList.contains('folder-button')) {
               const folderName = item.querySelector('.folder-text').textContent;
-              const folderData = new URLSearchParams();
-              folderData.append('foldername', folderName);
+              const subfolder = item.dataset.subfolder.replace(`/${folderName}`, ''); // Correctly construct the subfolder path
+              requestData = {
+                type: 'output',
+                subfolder: subfolder,
+                foldername: folderName
+              };
+              console.log('Deleting folder:', requestData);
+
               response = await fetch("/gallery/folder/remove", {
                 method: "POST",
-                body: folderData,
+                body: new URLSearchParams(requestData),
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded"
                 }
@@ -1153,14 +1224,16 @@ class ComfyCarousel extends ComfyDialog {
             }
 
             if (!response.ok) {
-              throw new Error(`Failed to delete item: ${response.statusText}`);
+              const errorText = await response.text();
+              console.error('Server response:', response.status, errorText);
+              throw new Error(`Failed to delete item: ${response.statusText}. Server message: ${errorText}`);
             }
 
             item.remove();
 
           } catch (error) {
             console.error('Error deleting item:', error);
-            alert('Failed to delete some items. Please try again.');
+            alert(`Failed to delete item: ${error.message}`);
             break;
           }
         }
