@@ -157,6 +157,7 @@ const styles = `
   background: rgba(0, 0, 0, 0.5);
   overflow-x: auto;
   white-space: nowrap;
+  z-index: 10001;
 }
 
 .comfy-carousel-box .reset-zoom {
@@ -218,6 +219,7 @@ const styles = `
 .comfy-carousel-box .dots img.active {
   opacity: 1;
   border: 2px solid #fff;
+  z-index: 10002;
 }
 
 .comfy-carousel .gallery-container {
@@ -439,6 +441,10 @@ const styles = `
   height: 50%;
 }
 
+.folder-button.selected:hover {
+  box-shadow: 0 0 0 2px #add8e6;
+}
+
 .folder-button:hover {
   background: rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
@@ -475,7 +481,7 @@ const styles = `
   width: 300px;
   max-height: 80%;
   overflow-y: auto;
-  background: rgba(0, 0, 0, 1);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
   font-family: 'Roboto', sans-serif;
@@ -502,9 +508,30 @@ const styles = `
 }
 
 .popup-buttons button {
-  margin-left: 10px;
-  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+  font-family: 'Roboto', sans-serif;
+  font-weight: bold;
+  border-radius: 8px;
+  margin-left: 10px;
+}
+
+.popup-buttons button:hover {
+  background: rgba(14, 122, 254, 1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.popup-buttons button:active {
+  transform: scale(0.95);
 }
 
 .comfy-carousel .move {
@@ -534,6 +561,90 @@ const styles = `
   height: 24px;
 }
 
+.move-popup {
+  width: calc(100vw / 3);
+  max-height: 80%;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
+  font-family: 'Roboto', sans-serif;
+  color: #ffffff;
+}
+
+.move-popup .breadcrumb-container {
+  display: flex;
+  flex-wrap: nowrap;
+  background: rgba(0, 0, 0, 0.8) !important;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 8px;
+  margin: 0;
+}
+
+.move-popup .breadcrumb-navigation-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s;
+  font-family: 'Roboto', sans-serif;
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.move-popup .breadcrumb-navigation-button:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.move-popup .breadcrumb-navigation-button:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  margin-right: 0; /* Remove the margin from the last breadcrumb */
+}
+
+.move-popup .breadcrumb-navigation-button:hover {
+  background: rgba(14, 122, 254, 1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.move-popup .separator {
+  margin: 0;
+}
+
+.folder-dropdown {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s;
+  font-family: 'Roboto', sans-serif;
+  font-weight: bold;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  appearance: none; /* Remove default styling */
+}
+
+.folder-dropdown:hover {
+  background: rgba(14, 122, 254, 1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.folder-dropdown option {
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+}
 `;
 
 const styleSheet = document.createElement("style");
@@ -542,6 +653,8 @@ styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
 
 const deleteButtonSVG = `<svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" d="M5.11686 7.7517C5.53016 7.72415 5.88754 8.03685 5.91509 8.45015L6.37503 15.3493C6.46489 16.6971 6.52892 17.6349 6.66948 18.3406C6.80583 19.025 6.99617 19.3873 7.26958 19.6431C7.54299 19.8989 7.91715 20.0647 8.60915 20.1552C9.32255 20.2485 10.2626 20.25 11.6134 20.25H12.3868C13.7376 20.25 14.6776 20.2485 15.391 20.1552C16.083 20.0647 16.4572 19.8989 16.7306 19.6431C17.004 19.3873 17.1943 19.025 17.3307 18.3406C17.4713 17.6349 17.5353 16.6971 17.6251 15.3493L18.0851 8.45015C18.1126 8.03685 18.47 7.72415 18.8833 7.7517C19.2966 7.77925 19.6093 8.13663 19.5818 8.54993L19.1183 15.5017C19.0328 16.7844 18.9638 17.8206 18.8018 18.6336C18.6334 19.4789 18.347 20.185 17.7554 20.7385C17.1638 21.2919 16.4402 21.5308 15.5856 21.6425C14.7635 21.7501 13.7251 21.7501 12.4395 21.75H11.5607C10.2751 21.7501 9.23664 21.7501 8.4146 21.6425C7.55995 21.5308 6.8364 21.2919 6.2448 20.7385C5.65321 20.185 5.36679 19.4789 5.19839 18.6336C5.03642 17.8205 4.96736 16.7844 4.88186 15.5017L4.41841 8.54993C4.39086 8.13663 4.70357 7.77925 5.11686 7.7517Z" fill="#ffffff"/> <path fill-rule="evenodd" clip-rule="evenodd" d="M10.3553 2.25004L10.3094 2.25002C10.093 2.24988 9.90445 2.24976 9.72643 2.27819C9.02313 2.39049 8.41453 2.82915 8.08559 3.46084C8.00232 3.62074 7.94282 3.79964 7.87452 4.00496L7.86 4.04858L7.76291 4.33984C7.74392 4.39681 7.73863 4.41251 7.73402 4.42524C7.55891 4.90936 7.10488 5.23659 6.59023 5.24964C6.5767 5.24998 6.56013 5.25004 6.50008 5.25004H3.5C3.08579 5.25004 2.75 5.58582 2.75 6.00004C2.75 6.41425 3.08579 6.75004 3.5 6.75004L6.50865 6.75004L6.52539 6.75004H17.4748L17.4915 6.75004L20.5001 6.75004C20.9143 6.75004 21.2501 6.41425 21.2501 6.00004C21.2501 5.58582 20.9143 5.25004 20.5001 5.25004H17.5001C17.44 5.25004 17.4235 5.24998 17.4099 5.24964C16.8953 5.23659 16.4413 4.90933 16.2661 4.42522C16.2616 4.41258 16.2562 4.39653 16.2373 4.33984L16.1402 4.04858L16.1256 4.00494C16.0573 3.79961 15.9978 3.62073 15.9146 3.46084C15.5856 2.82915 14.977 2.39049 14.2737 2.27819C14.0957 2.24976 13.9072 2.24988 13.6908 2.25002L13.6448 2.25004H10.3553ZM9.14458 4.93548C9.10531 5.04404 9.05966 5.14902 9.00815 5.25004H14.992C14.9405 5.14902 14.8949 5.04405 14.8556 4.9355L14.8169 4.82216L14.7171 4.52292C14.626 4.2494 14.605 4.19363 14.5842 4.15364C14.4745 3.94307 14.2716 3.79686 14.0372 3.75942C13.9927 3.75231 13.9331 3.75004 13.6448 3.75004H10.3553C10.067 3.75004 10.0075 3.75231 9.96296 3.75942C9.72853 3.79686 9.52566 3.94307 9.41601 4.15364C9.39519 4.19363 9.37419 4.24942 9.28302 4.52292L9.18322 4.82234C9.1682 4.86742 9.1565 4.90251 9.14458 4.93548Z" fill="#ffffff"/> </svg>`;
+
+const moveButtonSVG = `<svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M2 12V6.94975C2 6.06722 2 5.62595 2.06935 5.25839C2.37464 3.64031 3.64031 2.37464 5.25839 2.06935C5.62595 2 6.06722 2 6.94975 2C7.33642 2 7.52976 2 7.71557 2.01738C8.51665 2.09229 9.27652 2.40704 9.89594 2.92051C10.0396 3.03961 10.1763 3.17633 10.4497 3.44975L11 4C11.8158 4.81578 12.2237 5.22367 12.7121 5.49543C12.9804 5.64471 13.2651 5.7626 13.5604 5.84678C14.0979 6 14.6747 6 15.8284 6H16.2021C18.8345 6 20.1506 6 21.0062 6.76946C21.0849 6.84024 21.1598 6.91514 21.2305 6.99383C22 7.84935 22 9.16554 22 11.7979V14C22 17.7712 22 19.6569 20.8284 20.8284C19.6569 22 17.7712 22 14 22H10C6.22876 22 4.34315 22 3.17157 20.8284C2.51839 20.1752 2.22937 19.3001 2.10149 18" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/> <path d="M2 15C8.44365 15 6.55635 15 13 15M13 15L8.875 12M13 15L8.875 18" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </g> </svg>`;
 
 function parseExifData(exifData) {
   const isLittleEndian = new Uint16Array(exifData.slice(0, 2))[0] === 0x4949;
@@ -703,13 +816,10 @@ class ComfyCarousel extends ComfyDialog {
     if (activeImage) {
       const rect = activeImage.getBoundingClientRect();
       const containerRect = activeImage.parentElement.getBoundingClientRect();
-
       const maxX = Math.max(0, (rect.width * this.scale - containerRect.width) / 2);
       const maxY = Math.max(0, (rect.height * this.scale - containerRect.height) / 2);
-
       this.translateX = Math.max(-maxX, Math.min(maxX, this.translateX));
       this.translateY = Math.max(-maxY, Math.min(maxY, this.translateY));
-
       activeImage.style.transform = `scale(${this.scale}) translate(${this.translateX / this.scale}px, ${this.translateY / this.scale}px)`;
     }
   }
@@ -740,7 +850,6 @@ class ComfyCarousel extends ComfyDialog {
       this.element.querySelector('.dots').innerHTML = '';
       return;
     }
-
     let active = this.getActive();
     if (active) {
       active.classList.remove('shown');
@@ -748,17 +857,12 @@ class ComfyCarousel extends ComfyDialog {
     }
     slide.classList.add('shown');
     slide._dot.classList.add('active');
-
     const allDots = Array.from(this.element.querySelectorAll('.dots img'));
     const activeIndex = allDots.indexOf(slide._dot);
-
     const startIndex = Math.max(0, activeIndex - 10);
     const endIndex = Math.min(allDots.length - 1, activeIndex + 10);
-
     allDots.forEach((dot, i) => dot.style.display = i >= startIndex && i <= endIndex ? 'inline-block' : 'none');
-
     slide._dot.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-
     this.currentFolderPath = slide.dataset.folderPath || '';
   }
 
@@ -770,14 +874,12 @@ class ComfyCarousel extends ComfyDialog {
         const blob = await response.blob();
         const fileType = blob.type.split('/')[1] === 'jpeg' ? 'jpg' : blob.type.split('/')[1];
         const file = new File([blob], `image.${fileType}`, { type: blob.type });
-
         const metadata = await getMetadata(file);
         if (metadata?.workflow) {
           app.loadGraphData(metadata.workflow);
         } else if (metadata?.prompt) {
           app.loadApiJson(metadata.prompt);
         }
-
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         document.dispatchEvent(new DragEvent("drop", { dataTransfer }));
@@ -807,8 +909,8 @@ class ComfyCarousel extends ComfyDialog {
         $el("button.load", {
           innerHTML: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
           onclick: () => {
-            this.loadImage()
-            this.close()
+            this.loadImage();
+            this.close();
           }
         }),
         $el("button.gallery", {
@@ -837,94 +939,71 @@ class ComfyCarousel extends ComfyDialog {
       $el("button.prev", { textContent: "❮", onclick: e => this.prevSlide(e) }),
       $el("button.next", { textContent: "❯", onclick: e => this.nextSlide(e) }),
     ]);
-
     const galleryButton = carousel.querySelector('button.gallery');
     galleryButton.appendChild(createGallerySVG("26px", "26px", "20px"));
-
     this.element.appendChild(carousel);
     this.selectImage(slides[activeIndex]);
-
     const slidesContainer = carousel.querySelector('.slides');
     this.setupSlidesInteraction(slidesContainer);
-
     document.addEventListener("keydown", this.onKeydown, { capture: true });
     document.body.style.overflow = 'hidden';
     document.activeElement?.blur();
-
     const dotsContainer = carousel.querySelector('.dots');
     dotsContainer.addEventListener('wheel', (e) => {
       e.preventDefault();
       dotsContainer.scrollLeft += e.deltaY;
     });
-
     return carousel;
   }
 
   setupSlidesInteraction(slidesContainer) {
     slidesContainer.addEventListener('dragstart', (e) => e.preventDefault());
     slidesContainer.style.cursor = 'grab';
-
     let isDragging = false;
     let startX, startY;
-
     slidesContainer.addEventListener('mousedown', (e) => {
       isDragging = true;
       startX = e.clientX - this.translateX;
       startY = e.clientY - this.translateY;
       slidesContainer.style.cursor = 'grabbing';
     });
-
     slidesContainer.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
-
       const activeImage = this.getActive();
       const rect = activeImage.getBoundingClientRect();
       const containerRect = slidesContainer.getBoundingClientRect();
-
       const maxX = Math.max(0, (rect.width * this.scale - containerRect.width) / 2);
       const maxY = Math.max(0, (rect.height * this.scale - containerRect.height) / 2);
-
       this.translateX = Math.max(-maxX, Math.min(maxX, e.clientX - startX));
       this.translateY = Math.max(-maxY, Math.min(maxY, e.clientY - startY));
-
       this.updateZoom();
     });
-
     slidesContainer.addEventListener('mouseup', () => {
       isDragging = false;
       slidesContainer.style.cursor = 'grab';
     });
-
     slidesContainer.addEventListener('mouseleave', () => {
       isDragging = false;
       slidesContainer.style.cursor = 'grab';
     });
-
     slidesContainer.addEventListener('wheel', (e) => {
       e.preventDefault();
       const scaleChange = e.deltaY > 0 ? 0.9 : 1.1;
       const oldScale = this.scale;
       this.scale = Math.max(0.1, Math.min(10, this.scale * scaleChange));
-
       const rect = this.getActive().getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-
       const newTranslateX = mouseX - (mouseX - this.translateX * oldScale) * (this.scale / oldScale);
       const newTranslateY = mouseY - (mouseY - this.translateY * oldScale) * (this.scale / oldScale);
-
       this.translateX = newTranslateX / this.scale;
       this.translateY = newTranslateY / this.scale;
-
       this.updateZoom();
     });
-
   }
 
   async loadGalleryImages(e) {
-    if (typeof e.stopPropagation === 'function') {
-      e.stopPropagation();
-    }
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
 
     const subfolder = e.target.dataset.subfolder || '';
     const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(subfolder)}`);
@@ -932,11 +1011,8 @@ class ComfyCarousel extends ComfyDialog {
       alert("Failed to load gallery images");
       return;
     }
-    const data = await response.json();
-    const images = data.images;
-    const folders = data.folders;
-    const currentFolder = data.current_folder;
-    this.currentFolderPath = subfolder; 
+    const { images, folders, current_folder: currentFolder } = await response.json();
+    this.currentFolderPath = subfolder;
 
     const breadcrumbContainer = document.createElement('div');
     breadcrumbContainer.className = 'breadcrumb-container';
@@ -947,22 +1023,22 @@ class ComfyCarousel extends ComfyDialog {
     const homeButton = document.createElement('button');
     homeButton.textContent = 'Home';
     homeButton.dataset.subfolder = '';
-    homeButton.addEventListener('click', (e) => {
-      this.loadGalleryImages({ target: { dataset: { subfolder: '' } } });
+    homeButton.addEventListener('click', () => {
+        this.loadGalleryImages({ target: { dataset: { subfolder: '' } } });
     });
     breadcrumb.appendChild(homeButton);
 
     const pathSegments = currentFolder.split('/');
     pathSegments.forEach((segment, index) => {
-      if (segment) {
-        const button = document.createElement('button');
-        button.textContent = segment;
-        button.dataset.subfolder = pathSegments.slice(0, index + 1).join('/');
-        button.addEventListener('click', (e) => {
-          this.loadGalleryImages({ target: { dataset: { subfolder: button.dataset.subfolder } } });
-        });
-        breadcrumb.appendChild(button);
-      }
+        if (segment) {
+            const button = document.createElement('button');
+            button.textContent = segment;
+            button.dataset.subfolder = pathSegments.slice(0, index + 1).join('/');
+            button.addEventListener('click', () => {
+                this.loadGalleryImages({ target: { dataset: { subfolder: button.dataset.subfolder } } });
+            });
+            breadcrumb.appendChild(button);
+        }
     });
 
     const imageCount = document.createElement('span');
@@ -993,8 +1069,8 @@ class ComfyCarousel extends ComfyDialog {
 
     const updateButtonVisibility = () => {
       const anySelected = galleryContainer.querySelector('.folder-button.selected, img.selected');
-      deleteButton.style.display = anySelected ? 'block' : 'none';
-      moveButton.style.display = anySelected ? 'block' : 'none';
+      deleteButton.style.display = anySelected ? 'flex' : 'none';
+      moveButton.style.display = anySelected ? 'flex' : 'none';
     };
 
     const selectButton = document.createElement('button');
@@ -1007,9 +1083,7 @@ class ComfyCarousel extends ComfyDialog {
       if (isSelectionMode) {
         selectButton.innerHTML = '&#8212;';
         galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
-          if (!item.classList.contains('selected')) {
-            item.classList.add('greyed-out');
-          }
+          if (!item.classList.contains('selected')) item.classList.add('greyed-out');
         });
         updateButtonVisibility();
       } else {
@@ -1028,10 +1102,9 @@ class ComfyCarousel extends ComfyDialog {
 
     const moveButton = document.createElement('button');
     moveButton.className = 'move scroll-to-top select-images';
-    moveButton.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14 18V16H10V18H14ZM3 6V8H21V6H3ZM7 13H17V11H7V13Z" fill="currentColor"/>
-    </svg>`;
+    moveButton.innerHTML = moveButtonSVG;
     moveButton.style.display = 'none';
+    let currentPath = this.currentFolderPath || '';
     moveButton.addEventListener('click', () => {
       const overlay = document.createElement('div');
       overlay.className = 'move-overlay';
@@ -1039,54 +1112,73 @@ class ComfyCarousel extends ComfyDialog {
       const popup = document.createElement('div');
       popup.className = 'move-popup';
       popup.innerHTML = `
-    <h3>Select destination folder:</h3>
-    <div class="breadcrumb-container"></div>
-    <div class="folder-list"></div>
-    <div class="popup-buttons">
-      <button class="ok-button">OK</button>
-      <button class="cancel-button">Cancel</button>
-    </div>
-  `;
+            <h3>Select destination folder:</h3>
+            <div class="breadcrumb-container"></div>
+            <div class="folder-list"></div>
+            <div class="popup-buttons">
+                <button class="ok-button">OK</button>
+                <button class="cancel-button">Cancel</button>
+            </div>
+        `;
 
       const breadcrumbContainer = popup.querySelector('.breadcrumb-container');
       const folderList = popup.querySelector('.folder-list');
       const okButton = popup.querySelector('.ok-button');
       const cancelButton = popup.querySelector('.cancel-button');
 
-      let currentPath = '';
+      let currentPath = this.currentFolderPath || '';
 
       const updateBreadcrumb = (path) => {
         breadcrumbContainer.innerHTML = '';
         const pathSegments = path.split('/').filter(segment => segment !== '');
-        pathSegments.unshift('home');
+        pathSegments.unshift('Home');
 
-        pathSegments.forEach((segment, index) => {
-          const crumb = document.createElement('button');
-          crumb.textContent = segment;
-          crumb.addEventListener('click', () => {
-            const newPath = pathSegments.slice(1, index + 1).join('/');
-            updateFolderList(newPath);
+        if (path === '') {
+          const homeButton = document.createElement('button');
+          homeButton.className = 'breadcrumb-navigation-button';
+          homeButton.textContent = 'Home';
+          homeButton.addEventListener('click', () => {
+            updateFolderList('');
           });
-          breadcrumbContainer.appendChild(crumb);
+          breadcrumbContainer.appendChild(homeButton);
 
-          if (index < pathSegments.length - 1) {
-            const separator = document.createElement('span');
-            separator.textContent = ' / ';
-            separator.className = 'separator';
-            breadcrumbContainer.appendChild(separator);
-          }
-        });
+          const currentFolderSegments = currentFolder.split('/').filter(segment => segment !== '');
+          currentFolderSegments.forEach((segment, index) => {
+            const crumb = document.createElement('button');
+            crumb.className = 'breadcrumb-navigation-button';
+            crumb.textContent = segment;
+            crumb.addEventListener('click', () => {
+              const newPath = currentFolderSegments.slice(0, index + 1).join('/');
+              updateFolderList(newPath);
+            });
+            breadcrumbContainer.appendChild(crumb);
+          });
+        } else {
+          pathSegments.forEach((segment, index) => {
+            const crumb = document.createElement('button');
+            crumb.className = 'breadcrumb-navigation-button';
+            crumb.textContent = segment;
+            crumb.addEventListener('click', () => {
+              const newPath = pathSegments.slice(1, index + 1).join('/');
+              updateFolderList(newPath);
+            });
+            breadcrumbContainer.appendChild(crumb);
+          });
+        }
 
         const addButton = document.createElement('button');
+        addButton.className = 'breadcrumb-navigation-button';
         addButton.textContent = '+';
-        addButton.addEventListener('click', () => {
-          updateFolderList(path);
+        addButton.addEventListener('click', async () => {
+          breadcrumbContainer.removeChild(addButton);
+          const currentPath = path === '' ? currentFolder : path;
+          await showFolderDropdown(currentPath);
         });
+
         breadcrumbContainer.appendChild(addButton);
       };
 
-      const updateFolderList = async (path) => {
-        currentPath = path;
+      const showFolderDropdown = async (path) => {
         const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(path)}`);
         if (!response.ok) {
           alert("Failed to load folders");
@@ -1095,16 +1187,41 @@ class ComfyCarousel extends ComfyDialog {
         const data = await response.json();
         const folders = data.folders;
 
-        folderList.innerHTML = '';
+        const select = document.createElement('select');
+        select.className = 'folder-dropdown';
+
+        const defaultOption = document.createElement('option');
+        defaultOption.textContent = 'Select a folder';
+        defaultOption.value = '';
+        select.appendChild(defaultOption);
+
+        const selectedFolders = Array.from(galleryContainer.querySelectorAll('.folder-button.selected'))
+          .map(folder => folder.dataset.name);
+
         folders.forEach(folder => {
-          const folderItem = document.createElement('div');
-          folderItem.textContent = folder;
-          folderItem.addEventListener('click', () => {
-            updateFolderList(`${path}/${folder}`.replace(/^\//, ''));
-          });
-          folderList.appendChild(folderItem);
+          if (!selectedFolders.includes(folder)) {
+            const option = document.createElement('option');
+            option.value = folder;
+            option.textContent = folder;
+            select.appendChild(option);
+          }
         });
 
+        select.addEventListener('change', (e) => {
+          if (e.target.value) {
+            updateFolderList(`${path}/${e.target.value}`.replace(/^\//, ''));
+          }
+        });
+
+        const existingDropdown = breadcrumbContainer.querySelector('.folder-dropdown');
+        if (existingDropdown) existingDropdown.remove();
+
+        breadcrumbContainer.appendChild(select);
+      };
+
+      const updateFolderList = async (path) => {
+        currentPath = path;
+        this.currentFolderPath = path;
         updateBreadcrumb(path);
       };
 
@@ -1125,7 +1242,7 @@ class ComfyCarousel extends ComfyDialog {
             } else if (item.classList.contains('folder-button')) {
               const folderPath = item.dataset.subfolder;
               const folderName = item.querySelector('.folder-text').textContent;
-              const subfolder = folderPath.replace(`/${folderName}`, ''); // Correctly construct the subfolder path
+              const subfolder = folderPath.replace(`/${folderName}`, '');
               return {
                 type: 'folder',
                 subfolder: subfolder,
@@ -1139,7 +1256,7 @@ class ComfyCarousel extends ComfyDialog {
               method: "POST",
               body: new URLSearchParams({
                 type: 'output',
-                destination: selectedFolder, // Use the currentPath as the destination
+                destination: selectedFolder,
                 items: JSON.stringify(itemsToMove)
               }),
               headers: {
@@ -1153,7 +1270,10 @@ class ComfyCarousel extends ComfyDialog {
             }
 
             selectedItems.forEach(item => item.remove());
-            this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+            setTimeout(() => {
+              this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+            }, 100);
+
           } catch (error) {
             console.error('Error moving items:', error);
             alert(`Failed to move items. Error: ${error.message}`);
@@ -1169,8 +1289,6 @@ class ComfyCarousel extends ComfyDialog {
       overlay.appendChild(popup);
       document.body.appendChild(overlay);
     });
-
-
 
     const deleteButton = document.createElement('button');
     deleteButton.className = 'remove scroll-to-top select-images';
@@ -1194,8 +1312,7 @@ class ComfyCarousel extends ComfyDialog {
                 type: 'output',
                 subfolder: imageParams.get('subfolder') || '',
                 filename: imageParams.get('filename')
-              }
-              console.log('Deleting image:', requestData);
+              };
 
               response = await fetch("/gallery/image/remove", {
                 method: "POST",
@@ -1206,13 +1323,12 @@ class ComfyCarousel extends ComfyDialog {
               });
             } else if (item.classList.contains('folder-button')) {
               const folderName = item.querySelector('.folder-text').textContent;
-              const subfolder = item.dataset.subfolder.replace(`/${folderName}`, ''); // Correctly construct the subfolder path
+              const subfolder = item.dataset.subfolder.replace(`/${folderName}`, '');
               requestData = {
                 type: 'output',
                 subfolder: subfolder,
                 foldername: folderName
               };
-              console.log('Deleting folder:', requestData);
 
               response = await fetch("/gallery/folder/remove", {
                 method: "POST",
@@ -1225,7 +1341,6 @@ class ComfyCarousel extends ComfyDialog {
 
             if (!response.ok) {
               const errorText = await response.text();
-              console.error('Server response:', response.status, errorText);
               throw new Error(`Failed to delete item: ${response.statusText}. Server message: ${errorText}`);
             }
 
@@ -1246,7 +1361,7 @@ class ComfyCarousel extends ComfyDialog {
           item.classList.remove('greyed-out');
           item.classList.remove('selected');
         });
-        deleteButton.style.display = 'none';
+        updateButtonVisibility();
         lastSelectedIndex = -1;
         updateImageCount();
       }
@@ -1307,11 +1422,11 @@ class ComfyCarousel extends ComfyDialog {
       folderIcon.setAttribute("fill", "none");
       folderIcon.setAttribute("xmlns", "http://www.w3.org/2000/svg");
       folderIcon.innerHTML = `
-      <g transform="translate(1.4065934065934016 1.4065934065934016) scale(1 1)">
-        <path d="M 86.351 17.027 H 35.525 c -1.909 0 -3.706 -0.903 -4.846 -2.435 l -2.457 -3.302 c -0.812 -1.092 -2.093 -1.735 -3.454 -1.735 H 3.649 C 1.634 9.556 0 11.19 0 13.205 V 29.11 c 0 -2.015 1.634 -1.649 3.649 -1.649 h 82.703 c 2.015 0 3.649 -0.366 3.649 1.649 v -8.435 C 90 18.661 88.366 17.027 86.351 17.027 z" fill="rgb(48,168,249)"/>
-        <path d="M 86.351 80.444 H 3.649 C 1.634 80.444 0 78.81 0 76.795 V 29.11 c 0 -2.015 1.634 -3.649 3.649 -3.649 h 82.703 c 2.015 0 3.649 1.634 3.649 3.649 v 47.685 C 90 78.81 88.366 80.444 86.351 80.444 z" fill="rgb(42,152,234)"/>
-      </g>
-    `;
+            <g transform="translate(1.4065934065934016 1.4065934065934016) scale(1 1)">
+                <path d="M 86.351 17.027 H 35.525 c -1.909 0 -3.706 -0.903 -4.846 -2.435 l -2.457 -3.302 c -0.812 -1.092 -2.093 -1.735 -3.454 -1.735 H 3.649 C 1.634 9.556 0 11.19 0 13.205 V 29.11 c 0 -2.015 1.634 -1.649 3.649 -1.649 h 82.703 c 2.015 0 3.649 -0.366 3.649 1.649 v -8.435 C 90 18.661 88.366 17.027 86.351 17.027 z" fill="rgb(48,168,249)"/>
+                <path d="M 86.351 80.444 H 3.649 C 1.634 80.444 0 78.81 0 76.795 V 29.11 c 0 -2.015 1.634 -3.649 3.649 -3.649 h 82.703 c 2.015 0 3.649 1.634 3.649 3.649 v 47.685 C 90 78.81 88.366 80.444 86.351 80.444 z" fill="rgb(42,152,234)"/>
+            </g>
+        `;
 
       folderButton.appendChild(folderIcon);
 
@@ -1458,7 +1573,7 @@ class ComfyCarousel extends ComfyDialog {
     const slides = images.map(src => {
       const img = new Image();
       img.src = src;
-      img.dataset.folderPath = currentFolder; // Use currentFolder here
+      img.dataset.folderPath = currentFolder;
       return img;
     });
     this.setupCarousel(slides, activeIndex);
@@ -1468,8 +1583,8 @@ class ComfyCarousel extends ComfyDialog {
   async removeImage(e) {
     e.stopPropagation();
     if (!confirm("Remove this image?")) return;
-    let active = this.getActive();
-    let response = await fetch("/gallery/image/remove", {
+    const active = this.getActive();
+    const response = await fetch("/gallery/image/remove", {
       method: "POST",
       body: active.src.split("?")[1],
       headers: { "Content-Type": "application/x-www-form-urlencoded" }
@@ -1478,7 +1593,7 @@ class ComfyCarousel extends ComfyDialog {
       alert(`Failed removing image, server responded with: ${response.statusText}`);
       return;
     }
-    let newActive = active.nextElementSibling || active.previousElementSibling;
+    const newActive = active.nextElementSibling || active.previousElementSibling;
     active._dot.remove();
     active.remove();
     this.removeCallback(active.src);
@@ -1491,10 +1606,10 @@ class ComfyCarousel extends ComfyDialog {
       e.preventDefault();
       e.stopPropagation();
     }
-    let active = this.getActive();
-    let prev = active.previousElementSibling || active.parentNode.lastElementChild;
+    const active = this.getActive();
+    const prev = active.previousElementSibling || active.parentNode.lastElementChild;
     this.selectImage(prev);
-    this.lastViewedIndex = Array.from(active.parentNode.children).indexOf(prev);
+    this.lastViewedIndex = [...active.parentNode.children].indexOf(prev);
   }
 
   nextSlide(e) {
@@ -1502,10 +1617,10 @@ class ComfyCarousel extends ComfyDialog {
       e.preventDefault();
       e.stopPropagation();
     }
-    let active = this.getActive();
-    let next = active.nextElementSibling || active.parentNode.firstElementChild;
+    const active = this.getActive();
+    const next = active.nextElementSibling || active.parentNode.firstElementChild;
     this.selectImage(next);
-    this.lastViewedIndex = Array.from(active.parentNode.children).indexOf(next);
+    this.lastViewedIndex = [...active.parentNode.children].indexOf(next);
   }
 
   onKeydown(e) {
@@ -1585,14 +1700,13 @@ app.registerExtension({
     const clearButton = document.querySelector('button[title="Clears current workflow"]');
 
     if (clearButton) {
-      const galleryButton = Object.assign(document.createElement('button'), {
-        className: 'comfyui-button',
-        title: 'View Gallery',
-        onclick: (e) => {
-          app.ui.galleryCarousel.loadGalleryImages(e);
-          console.log("ComfyCarousel initialized");
-        }
-      });
+      const galleryButton = document.createElement('button');
+      galleryButton.className = 'comfyui-button';
+      galleryButton.title = 'View Gallery';
+      galleryButton.onclick = (e) => {
+        app.ui.galleryCarousel.loadGalleryImages(e);
+        console.log("ComfyCarousel initialized");
+      };
 
       createGalleryIcon(galleryButton);
       clearButton.parentNode.insertBefore(galleryButton, clearButton.nextSibling);
@@ -1602,51 +1716,52 @@ app.registerExtension({
   },
 
   async setup() {
-    let origHandleFile = app.handleFile;
+    const origHandleFile = app.handleFile;
     app.handleFile = function (...args) {
-      handleFile.call(this, origHandleFile, ...args)
+      handleFile.call(this, origHandleFile, ...args);
     };
 
     const input = document.getElementById("comfy-file-input");
     let types = input?.getAttribute("accept");
     if (types) {
       types = types.split(",").map(t => t.trim());
-      if (!types.includes("image/webp"))
-        types.push("image/webp");
-      if (!types.includes("image/jpeg"))
-        types.push("image/jpeg");
+      if (!types.includes("image/webp")) types.push("image/webp");
+      if (!types.includes("image/jpeg")) types.push("image/jpeg");
       input.setAttribute("accept", types.join(","));
     }
   },
 
   beforeRegisterNodeDef(nodeType, nodeData) {
-    function isImageClick(node, pos) {
+    const isImageClick = (node, pos) => {
       let imageY;
-      if (node.imageOffset) imageY = node.imageOffset;
-      else if (node.widgets?.length) {
+      if (node.imageOffset) {
+        imageY = node.imageOffset;
+      } else if (node.widgets?.length) {
         const widget = node.widgets[node.widgets.length - 1];
         imageY = widget.last_y;
-        if (widget.computeSize) imageY += widget.computeSize()[1] + 4;
-        else if (widget.computedHeight) imageY += widget.computedHeight;
-        else imageY += LiteGraph.NODE_WIDGET_HEIGHT + 4;
-      } else imageY = node.computeSize()[1];
+        if (widget.computeSize) {
+          imageY += widget.computeSize()[1] + 4;
+        } else if (widget.computedHeight) {
+          imageY += widget.computedHeight;
+        } else {
+          imageY += LiteGraph.NODE_WIDGET_HEIGHT + 4;
+        }
+      } else {
+        imageY = node.computeSize()[1];
+      }
       return pos[1] >= imageY;
-    }
+    };
 
     const origOnDblClick = nodeType.prototype.onDblClick;
     nodeType.prototype.onDblClick = function (e, pos, ...args) {
       if (this.imgs && this.imgs.length && isImageClick(this, pos)) {
-        let imageIndex = 0;
-        if (this.imageIndex !== null) imageIndex = this.imageIndex;
-        else if (this.overIndex !== null) imageIndex = this.overIndex;
+        let imageIndex = this.imageIndex ?? this.overIndex ?? 0;
         app.ui.nodeCarousel.show(this.imgs.map(img => img.src), imageIndex, src => {
-          let index = this.imgs.findIndex(image => image.src == src);
+          const index = this.imgs.findIndex(image => image.src === src);
           if (index >= 0) {
             this.imgs.splice(index, 1);
-            if (this.imageIndex !== null)
-              this.imageIndex = this.imgs.length ? this.imageIndex % this.imgs.length : null;
-            if (this.overIndex !== null)
-              this.overIndex = this.imgs.length ? this.overIndex % this.imgs.length : null;
+            this.imageIndex = this.imgs.length ? this.imageIndex % this.imgs.length : null;
+            this.overIndex = this.imgs.length ? this.overIndex % this.imgs.length : null;
             app.graph.setDirtyCanvas(true);
           }
         });
