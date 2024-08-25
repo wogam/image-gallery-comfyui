@@ -2,6 +2,10 @@ import { app } from "/scripts/app.js";
 import { $el, ComfyDialog } from "/scripts/ui.js";
 
 const styles = `
+* {
+  font-family: 'Roboto', sans-serif;
+}
+
 :root {
   --breadcrumb-top: 25px;
 }
@@ -102,7 +106,6 @@ const styles = `
   margin-top: 0px;
   display: flex;
   justify-content: center;
-  font-family: 'Roboto', sans-serif;
   align-items: center;
   cursor: pointer;
   transition: background 0.3s, transform 0.2s, backdrop-filter 0.3s;
@@ -362,7 +365,6 @@ const styles = `
   align-items: center;
   cursor: pointer;
   transition: background 0.3s;
-  font-family: 'Roboto', sans-serif;
   font-weight: bold;
   margin-right: 5px;
 }
@@ -386,7 +388,6 @@ const styles = `
   align-items: center;
   cursor: pointer;
   transition: background 0.3s;
-  font-family: 'Roboto', sans-serif;
   font-weight: bold;
   border-radius: 8px;
 }
@@ -423,7 +424,6 @@ const styles = `
   backdrop-filter: blur(10px);
   cursor: pointer;
   transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
-  font-family: 'Roboto', sans-serif;
   margin-top: 10px;
 }
 
@@ -455,7 +455,6 @@ const styles = `
   margin-top: 8px;
   font-size: 14px;
   text-align: center;
-  font-family: 'Roboto', sans-serif;
 }
 
 .move-overlay {
@@ -484,7 +483,6 @@ const styles = `
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
-  font-family: 'Roboto', sans-serif;
 }
 
 .move-popup h3 {
@@ -518,7 +516,6 @@ const styles = `
   justify-content: center;
   cursor: pointer;
   transition: background 0.3s, transform 0.2s;
-  font-family: 'Roboto', sans-serif;
   font-weight: bold;
   border-radius: 8px;
   margin-left: 10px;
@@ -568,7 +565,6 @@ const styles = `
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
-  font-family: 'Roboto', sans-serif;
   color: #ffffff;
 }
 
@@ -592,7 +588,6 @@ const styles = `
   align-items: center;
   cursor: pointer;
   transition: background 0.3s;
-  font-family: 'Roboto', sans-serif;
   font-weight: bold;
   margin-right: 5px;
 }
@@ -628,7 +623,6 @@ const styles = `
   align-items: center;
   cursor: pointer;
   transition: background 0.3s;
-  font-family: 'Roboto', sans-serif;
   font-weight: bold;
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
@@ -1024,21 +1018,21 @@ class ComfyCarousel extends ComfyDialog {
     homeButton.textContent = 'Home';
     homeButton.dataset.subfolder = '';
     homeButton.addEventListener('click', () => {
-        this.loadGalleryImages({ target: { dataset: { subfolder: '' } } });
+      this.loadGalleryImages({ target: { dataset: { subfolder: '' } } });
     });
     breadcrumb.appendChild(homeButton);
 
     const pathSegments = currentFolder.split('/');
     pathSegments.forEach((segment, index) => {
-        if (segment) {
-            const button = document.createElement('button');
-            button.textContent = segment;
-            button.dataset.subfolder = pathSegments.slice(0, index + 1).join('/');
-            button.addEventListener('click', () => {
-                this.loadGalleryImages({ target: { dataset: { subfolder: button.dataset.subfolder } } });
-            });
-            breadcrumb.appendChild(button);
-        }
+      if (segment) {
+        const button = document.createElement('button');
+        button.textContent = segment;
+        button.dataset.subfolder = pathSegments.slice(0, index + 1).join('/');
+        button.addEventListener('click', () => {
+          this.loadGalleryImages({ target: { dataset: { subfolder: button.dataset.subfolder } } });
+        });
+        breadcrumb.appendChild(button);
+      }
     });
 
     const imageCount = document.createElement('span');
@@ -1133,50 +1127,33 @@ class ComfyCarousel extends ComfyDialog {
         const pathSegments = path.split('/').filter(segment => segment !== '');
         pathSegments.unshift('Home');
 
-        if (path === '') {
-          const homeButton = document.createElement('button');
-          homeButton.className = 'breadcrumb-navigation-button';
-          homeButton.textContent = 'Home';
-          homeButton.addEventListener('click', () => {
-            updateFolderList('');
-          });
-          breadcrumbContainer.appendChild(homeButton);
-
-          const currentFolderSegments = currentFolder.split('/').filter(segment => segment !== '');
-          currentFolderSegments.forEach((segment, index) => {
-            const crumb = document.createElement('button');
-            crumb.className = 'breadcrumb-navigation-button';
-            crumb.textContent = segment;
-            crumb.addEventListener('click', () => {
-              const newPath = currentFolderSegments.slice(0, index + 1).join('/');
-              updateFolderList(newPath);
-            });
-            breadcrumbContainer.appendChild(crumb);
-          });
-        } else {
-          pathSegments.forEach((segment, index) => {
-            const crumb = document.createElement('button');
-            crumb.className = 'breadcrumb-navigation-button';
-            crumb.textContent = segment;
-            crumb.addEventListener('click', () => {
+        pathSegments.forEach((segment, index) => {
+          const crumb = document.createElement('button');
+          crumb.className = 'breadcrumb-navigation-button';
+          crumb.textContent = segment;
+          crumb.addEventListener('click', () => {
+            if (index === 0) {
+              // Clicking 'Home' always goes to the root directory
+              updateFolderList('');
+            } else {
               const newPath = pathSegments.slice(1, index + 1).join('/');
               updateFolderList(newPath);
-            });
-            breadcrumbContainer.appendChild(crumb);
+            }
           });
-        }
+          breadcrumbContainer.appendChild(crumb);
+        });
 
         const addButton = document.createElement('button');
         addButton.className = 'breadcrumb-navigation-button';
         addButton.textContent = '+';
         addButton.addEventListener('click', async () => {
           breadcrumbContainer.removeChild(addButton);
-          const currentPath = path === '' ? currentFolder : path;
-          await showFolderDropdown(currentPath);
+          await showFolderDropdown(path);
         });
 
         breadcrumbContainer.appendChild(addButton);
       };
+
 
       const showFolderDropdown = async (path) => {
         const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(path)}`);
@@ -1225,7 +1202,7 @@ class ComfyCarousel extends ComfyDialog {
         updateBreadcrumb(path);
       };
 
-      updateFolderList('');
+      updateFolderList(currentPath);
 
       okButton.addEventListener('click', async () => {
         const selectedFolder = currentPath;
@@ -1687,76 +1664,66 @@ class ComfyCarousel extends ComfyDialog {
 
 app.registerExtension({
   name: "Comfy.ImageGallery",
-  init() {
-    app.ui.galleryCarousel = new ComfyCarousel();
-    app.ui.nodeCarousel = new ComfyCarousel();
-    app.ui.galleryCarousel.initializeGallerySize();
 
-    const createGalleryIcon = (el) => {
-      const svg = createGallerySVG();
-      el.appendChild(svg);
-    };
+  init() {
+    const { ui } = app;
+    ui.galleryCarousel = new ComfyCarousel();
+    ui.nodeCarousel = new ComfyCarousel();
+    ui.galleryCarousel.initializeGallerySize();
 
     const clearButton = document.querySelector('button[title="Clears current workflow"]');
-
-    if (clearButton) {
-      const galleryButton = document.createElement('button');
-      galleryButton.className = 'comfyui-button';
-      galleryButton.title = 'View Gallery';
-      galleryButton.onclick = (e) => {
-        app.ui.galleryCarousel.loadGalleryImages(e);
-        console.log("ComfyCarousel initialized");
-      };
-
-      createGalleryIcon(galleryButton);
-      clearButton.parentNode.insertBefore(galleryButton, clearButton.nextSibling);
-    } else {
+    if (!clearButton) {
       console.warn("Clear button not found. Gallery icon couldn't be added.");
+      return;
     }
+
+    const galleryButton = document.createElement('button');
+    galleryButton.className = 'comfyui-button';
+    galleryButton.title = 'View Gallery';
+    galleryButton.onclick = (e) => {
+      ui.galleryCarousel.loadGalleryImages(e);
+      console.log("ComfyCarousel initialized");
+    };
+
+    galleryButton.appendChild(createGallerySVG());
+    clearButton.parentNode.insertBefore(galleryButton, clearButton.nextSibling);
   },
 
   async setup() {
+    const input = document.getElementById("comfy-file-input");
+    if (!input) return;
+
+    let types = input.getAttribute("accept")?.split(",").map(t => t.trim()) || [];
+    ["image/webp", "image/jpeg"].forEach(type => {
+      if (!types.includes(type)) types.push(type);
+    });
+    input.setAttribute("accept", types.join(","));
+    
     const origHandleFile = app.handleFile;
     app.handleFile = function (...args) {
       handleFile.call(this, origHandleFile, ...args);
     };
-
-    const input = document.getElementById("comfy-file-input");
-    let types = input?.getAttribute("accept");
-    if (types) {
-      types = types.split(",").map(t => t.trim());
-      if (!types.includes("image/webp")) types.push("image/webp");
-      if (!types.includes("image/jpeg")) types.push("image/jpeg");
-      input.setAttribute("accept", types.join(","));
-    }
   },
 
   beforeRegisterNodeDef(nodeType, nodeData) {
     const isImageClick = (node, pos) => {
-      let imageY;
-      if (node.imageOffset) {
-        imageY = node.imageOffset;
-      } else if (node.widgets?.length) {
-        const widget = node.widgets[node.widgets.length - 1];
-        imageY = widget.last_y;
-        if (widget.computeSize) {
-          imageY += widget.computeSize()[1] + 4;
-        } else if (widget.computedHeight) {
-          imageY += widget.computedHeight;
-        } else {
-          imageY += LiteGraph.NODE_WIDGET_HEIGHT + 4;
-        }
-      } else {
-        imageY = node.computeSize()[1];
-      }
+      let imageY = node.imageOffset || calculateImageY(node);
       return pos[1] >= imageY;
+    };
+
+    const calculateImageY = (node) => {
+      if (node.widgets?.length) {
+        const widget = node.widgets[node.widgets.length - 1];
+        return widget.last_y + (widget.computeSize ? widget.computeSize()[1] + 4 : widget.computedHeight || LiteGraph.NODE_WIDGET_HEIGHT + 4);
+      }
+      return node.computeSize()[1];
     };
 
     const origOnDblClick = nodeType.prototype.onDblClick;
     nodeType.prototype.onDblClick = function (e, pos, ...args) {
-      if (this.imgs && this.imgs.length && isImageClick(this, pos)) {
-        let imageIndex = this.imageIndex ?? this.overIndex ?? 0;
-        app.ui.nodeCarousel.show(this.imgs.map(img => img.src), imageIndex, src => {
+      if (this.imgs?.length && isImageClick(this, pos)) {
+        const imageIndex = this.imageIndex ?? this.overIndex ?? 0;
+        app.ui.nodeCarousel.show(this.imgs.map(img => img.src), imageIndex, (src) => {
           const index = this.imgs.findIndex(image => image.src === src);
           if (index >= 0) {
             this.imgs.splice(index, 1);
