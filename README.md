@@ -1,11 +1,34 @@
-# Image Gallery
+# Image Gallery and Carousel
 
-Double click on image to open gallery view. Click the trash bin to remove the image currently open.
-You can view all your recent generations by clicking the gallery icon.
+A web-based application for displaying, managing, and interacting with images. This app provides a seamless experience for browsing image collections and viewing them in a full-screen carousel.
+
+## Features
+
+### Image Carousel
+- **Full-Screen View**: Enhanced viewing experience with full-screen image display.
+- **Zoom and Pan**: Smooth zooming and panning for detailed exploration.
+- **Keyboard Navigation**: Use arrow keys to navigate.
+
+### Image Gallery
+- **Thumbnail View**: Browse images in a grid layout with lazy loading for performance.
+- **Folder Navigation**: Easily navigate through folders and subfolders.
+
+### Metadata Extraction
+- **EXIF Data Parsing**: Extracts metadata from JPEG and WebP images.
+- **Workflow Integration**: Load workflows from metadata into the app.
+
+### Image Management
+- **Selection and Batch Operations**: Select multiple images or folders for moving or deleting.
+
+### User Interface Enhancements
+- **Dynamic Breadcrumbs**: Track and navigate folder paths effortlessly.
+- **Resizable Thumbnails**: Adjust thumbnail size with a slider for a customized view.
+- **Interactive Buttons**: Intuitive controls for zooming, loading, and gallery toggling.
+
+Double click on image to open gallery view or use the gallery icon in the new ComfyUI frontend.
+
 
 ![image](https://github.com/user-attachments/assets/ef65ee7a-c7a3-4486-8057-d947eddeea7a)
-
-
 
 ## Installation
 
