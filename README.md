@@ -28,7 +28,12 @@ A web-based application for displaying, managing, and interacting with images. T
 Double click on image to open gallery view or use the gallery icon to browse previous generations in the new ComfyUI frontend.
 
 
-![image](https://github.com/user-attachments/assets/ef65ee7a-c7a3-4486-8057-d947eddeea7a)
+
+
+Image View             |  Gallery View
+:-------------------------:|:-------------------------:
+![image](https://github.com/user-attachments/assets/ef65ee7a-c7a3-4486-8057-d947eddeea7a)   |  ![image](https://github.com/user-attachments/assets/11f51ee9-b930-4026-95dc-f136436bfe21)
+
 
 ## Installation
 
