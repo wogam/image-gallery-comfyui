@@ -25,7 +25,7 @@ A web-based application for displaying, managing, and interacting with images. T
 - **Resizable Thumbnails**: Adjust thumbnail size with a slider for a customized view.
 - **Interactive Buttons**: Intuitive controls for zooming, loading, and gallery toggling.
 
-Double click on image to open gallery view or use the gallery icon in the new ComfyUI frontend.
+Double click on image to open gallery view or use the gallery icon to browse previous generations in the new ComfyUI frontend.
 
 
 ![image](https://github.com/user-attachments/assets/ef65ee7a-c7a3-4486-8057-d947eddeea7a)
