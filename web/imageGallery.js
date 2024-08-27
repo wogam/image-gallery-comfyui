@@ -17,7 +17,7 @@ const styles = `
   justify-content: center;
   align-items: center;
   background: rgba(0, 0, 0, 0.8);
-  z-index: 9999;
+  z-index: 99999999;
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
