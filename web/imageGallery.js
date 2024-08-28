@@ -8,6 +8,7 @@ const styles = `
 
 :root {
   --breadcrumb-top: 25px;
+  --comfy-carousel-z-index: 99999999;
 }
 
 .comfy-carousel {
@@ -17,7 +18,7 @@ const styles = `
   justify-content: center;
   align-items: center;
   background: rgba(0, 0, 0, 0.8);
-  z-index: 99999999;
+  z-index: var(--comfy-carousel-z-index);
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
@@ -160,7 +161,7 @@ const styles = `
   background: rgba(0, 0, 0, 0.5);
   overflow-x: auto;
   white-space: nowrap;
-  z-index: 10001;
+  z-index: calc(var(--comfy-carousel-z-index) + 2);
 }
 
 .comfy-carousel-box .reset-zoom {
@@ -222,7 +223,7 @@ const styles = `
 .comfy-carousel-box .dots img.active {
   opacity: 1;
   border: 2px solid #fff;
-  z-index: 10002;
+  z-index: calc(var(--comfy-carousel-z-index) + 3);
 }
 
 .comfy-carousel .gallery-container {
@@ -305,7 +306,7 @@ const styles = `
   outline: none;
   opacity: 0.7;
   transition: opacity 0.2s;
-  z-index: 10000;
+  z-index: calc(var(--comfy-carousel-z-index) + 1);
 }
 
 .gallery-size-slider:hover {
@@ -464,7 +465,7 @@ const styles = `
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 20000;
+  z-index: calc(var(--comfy-carousel-z-index) + 20);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -476,7 +477,7 @@ const styles = `
   padding: 20px;
   border-radius: 5px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  z-index: 20001;
+  z-index: calc(var(--comfy-carousel-z-index) + 21);
   width: 300px;
   max-height: 80%;
   overflow-y: auto;
