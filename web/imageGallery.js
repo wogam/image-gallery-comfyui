@@ -798,6 +798,8 @@ class ComfyCarousel extends ComfyDialog {
         this.close();
       }
     });
+    this.isSelectionMode = false;
+    this.handleDelete = null;
   }
 
   createButtons() {
@@ -1044,7 +1046,7 @@ class ComfyCarousel extends ComfyDialog {
     imageCount.textContent = `${images.length} images`;
 
     const updateImageCount = () => {
-      if (isSelectionMode) {
+      if (this.isSelectionMode) {
         const selectedCount = galleryContainer.querySelectorAll('.folder-button.selected, img.selected').length;
         imageCount.textContent = `${selectedCount} selected`;
       } else {
@@ -1074,11 +1076,11 @@ class ComfyCarousel extends ComfyDialog {
     const selectButton = document.createElement('button');
     selectButton.className = 'select-images';
     selectButton.innerHTML = '&#10003;';
-    let isSelectionMode = false;
+    this.isSelectionMode = false;
     let confirmDelete = false;
     selectButton.addEventListener('click', () => {
-      isSelectionMode = !isSelectionMode;
-      if (isSelectionMode) {
+      this.isSelectionMode = !this.isSelectionMode;
+      if (this.isSelectionMode) {
         selectButton.innerHTML = '&#8212;';
         galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
           if (!item.classList.contains('selected')) item.classList.add('greyed-out');
@@ -1137,7 +1139,6 @@ class ComfyCarousel extends ComfyDialog {
           crumb.textContent = segment;
           crumb.addEventListener('click', () => {
             if (index === 0) {
-              // Clicking 'Home' always goes to the root directory
               updateFolderList('');
             } else {
               const newPath = pathSegments.slice(1, index + 1).join('/');
@@ -1273,7 +1274,7 @@ class ComfyCarousel extends ComfyDialog {
 
     const reloadButton = document.createElement('button');
     reloadButton.className = 'reload-gallery scroll-to-top select-images';
-    reloadButton.innerHTML = '&#x21bb;'; // Circular arrow symbol
+    reloadButton.innerHTML = '&#x21bb;';
     reloadButton.title = 'Reload gallery';
     reloadButton.addEventListener('click', () => {
       this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
@@ -1283,7 +1284,7 @@ class ComfyCarousel extends ComfyDialog {
     deleteButton.className = 'remove scroll-to-top select-images';
     deleteButton.innerHTML = deleteButtonSVG;
     deleteButton.style.display = 'none';
-    deleteButton.addEventListener('click', async () => {
+    this.handleDelete = async () => {
       if (!confirmDelete) {
         deleteButton.innerHTML = 'Confirm &#10003;';
         deleteButton.style.width = 'auto';
@@ -1344,7 +1345,7 @@ class ComfyCarousel extends ComfyDialog {
 
         confirmDelete = false;
         deleteButton.innerHTML = deleteButtonSVG;
-        isSelectionMode = false;
+        this.isSelectionMode = false;
         selectButton.innerHTML = '&#10003;';
         galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
           item.classList.remove('greyed-out');
@@ -1357,7 +1358,9 @@ class ComfyCarousel extends ComfyDialog {
           this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
         }, 100);
       }
-    });
+    };
+
+    deleteButton.addEventListener('click', this.handleDelete);
 
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'button-container';
@@ -1434,7 +1437,7 @@ class ComfyCarousel extends ComfyDialog {
       folderButton.addEventListener('click', (e) => {
         e.stopPropagation();
 
-        if (isSelectionMode) {
+        if (this.isSelectionMode) {
           folderButton.classList.toggle('selected');
           folderButton.classList.toggle('greyed-out');
 
@@ -1454,7 +1457,7 @@ class ComfyCarousel extends ComfyDialog {
       img.dataset.src = src;
       img.alt = `Gallery image ${index + 1}`;
       img.addEventListener('click', (e) => {
-        if (isSelectionMode) {
+        if (this.isSelectionMode) {
           const currentIndex = index;
 
           if (e.shiftKey && lastSelectedIndex !== -1) {
@@ -1490,7 +1493,7 @@ class ComfyCarousel extends ComfyDialog {
     });
 
     galleryContainer.addEventListener('mousedown', (e) => {
-      if (isSelectionMode) {
+      if (this.isSelectionMode) {
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -1498,7 +1501,7 @@ class ComfyCarousel extends ComfyDialog {
     });
 
     galleryContainer.addEventListener('mousemove', (e) => {
-      if (isDragging && isSelectionMode) {
+      if (isDragging && this.isSelectionMode) {
         const currentX = e.clientX;
         const currentY = e.clientY;
         const dx = currentX - startX;
@@ -1623,9 +1626,6 @@ class ComfyCarousel extends ComfyDialog {
       case "Escape":
         this.close();
         break;
-      case "Delete":
-        this.removeImage(e);
-        break;
       case "ArrowLeft":
         this.prevSlide(e);
         break;
@@ -1640,8 +1640,22 @@ class ComfyCarousel extends ComfyDialog {
         this.loadImage();
         this.close();
         break;
+      case "Delete":
+        const activeImage = this.getActive();
+        if (activeImage && !this.element.querySelector('.gallery-container')) {
+          // Simulate a click event on the remove button
+          const removeButton = this.element.querySelector('button.remove');
+          if (removeButton) {
+            const syntheticEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
+            removeButton.dispatchEvent(syntheticEvent);
+          }
+        } else if (this.element.querySelector('.gallery-container') && this.isSelectionMode && this.element.querySelector('.folder-button.selected, img.selected')) {
+          this.handleDelete();
+        }
+        break;
     }
   }
+
 
   initializeGallerySize() {
     const storedSize = localStorage.getItem('galleryImageSize') || '150';
