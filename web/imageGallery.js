@@ -97,6 +97,7 @@ const styles = `
 .comfy-carousel-box .prev,
 .comfy-carousel-box .next,
 .comfy-carousel .scroll-to-top,
+.comfy-carousel .reload-gallery,
 .comfy-carousel .select-images {
   background: transparent;
   color: #fff;
@@ -130,6 +131,7 @@ const styles = `
 .comfy-carousel-box .prev:hover,
 .comfy-carousel-box .next:hover,
 .comfy-carousel .scroll-to-top:hover,
+.comfy-carousel .reload-gallery:hover,
 .comfy-carousel .select-images:hover {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -1001,6 +1003,7 @@ class ComfyCarousel extends ComfyDialog {
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
 
     const subfolder = e.target.dataset.subfolder || '';
+    this.currentFolderPath = subfolder;
     const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(subfolder)}`);
     if (!response.ok) {
       alert("Failed to load gallery images");
@@ -1268,6 +1271,14 @@ class ComfyCarousel extends ComfyDialog {
       document.body.appendChild(overlay);
     });
 
+    const reloadButton = document.createElement('button');
+    reloadButton.className = 'reload-gallery scroll-to-top select-images';
+    reloadButton.innerHTML = '&#x21bb;'; // Circular arrow symbol
+    reloadButton.title = 'Reload gallery';
+    reloadButton.addEventListener('click', () => {
+      this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+    });
+
     const deleteButton = document.createElement('button');
     deleteButton.className = 'remove scroll-to-top select-images';
     deleteButton.innerHTML = deleteButtonSVG;
@@ -1342,6 +1353,9 @@ class ComfyCarousel extends ComfyDialog {
         updateButtonVisibility();
         lastSelectedIndex = -1;
         updateImageCount();
+        setTimeout(() => {
+          this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+        }, 100);
       }
     });
 
@@ -1448,7 +1462,7 @@ class ComfyCarousel extends ComfyDialog {
             const end = Math.max(lastSelectedIndex, currentIndex);
 
             for (let i = start; i <= end; i++) {
-              const imgToSelect = galleryContainer.children[i];
+              const imgToSelect = galleryContainer.children[folders.length + i];
               imgToSelect.classList.add('selected');
               imgToSelect.classList.remove('greyed-out');
             }
@@ -1521,6 +1535,7 @@ class ComfyCarousel extends ComfyDialog {
     buttonContainer.appendChild(deleteButton);
     buttonContainer.appendChild(moveButton);
     buttonContainer.appendChild(selectButton);
+    buttonContainer.appendChild(reloadButton);
     buttonContainer.appendChild(scrollToTopButton);
     this.element.appendChild(breadcrumbContainer);
     this.element.appendChild(galleryContainer);
@@ -1699,7 +1714,7 @@ app.registerExtension({
       if (!types.includes(type)) types.push(type);
     });
     input.setAttribute("accept", types.join(","));
-    
+
     const origHandleFile = app.handleFile;
     app.handleFile = function (...args) {
       handleFile.call(this, origHandleFile, ...args);
