@@ -800,6 +800,7 @@ class ComfyCarousel extends ComfyDialog {
     });
     this.isSelectionMode = false;
     this.handleDelete = null;
+    this.currentSubfolder = '';
   }
 
   createButtons() {
@@ -1002,17 +1003,19 @@ class ComfyCarousel extends ComfyDialog {
   }
 
   async loadGalleryImages(e) {
+    console.log("Loading gallery images with subfolder:", e.target.dataset.subfolder);
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
 
     const subfolder = e.target.dataset.subfolder || '';
-    this.currentFolderPath = subfolder;
+    this.currentSubfolder = subfolder;
     const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(subfolder)}`);
     if (!response.ok) {
       alert("Failed to load gallery images");
       return;
     }
     const { images, folders, current_folder: currentFolder } = await response.json();
-    this.currentFolderPath = subfolder;
+
+    this.currentFolderPath = this.currentSubfolder;
 
     const breadcrumbContainer = document.createElement('div');
     breadcrumbContainer.className = 'breadcrumb-container';
@@ -1277,7 +1280,7 @@ class ComfyCarousel extends ComfyDialog {
     reloadButton.innerHTML = '&#x21bb;';
     reloadButton.title = 'Reload gallery';
     reloadButton.addEventListener('click', () => {
-      this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+      this.loadGalleryImages({ target: { dataset: { subfolder: this.currentSubfolder } } });
     });
 
     const deleteButton = document.createElement('button');
@@ -1343,6 +1346,10 @@ class ComfyCarousel extends ComfyDialog {
           }
         }
 
+        // Store the current folder path before reloading
+        const currentFolderPath = this.currentSubfolder;
+        console.log("Current folder path before reload:", currentFolderPath);
+
         confirmDelete = false;
         deleteButton.innerHTML = deleteButtonSVG;
         this.isSelectionMode = false;
@@ -1354,11 +1361,16 @@ class ComfyCarousel extends ComfyDialog {
         updateButtonVisibility();
         lastSelectedIndex = -1;
         updateImageCount();
+
+        // Reload the gallery with the stored folder path
         setTimeout(() => {
-          this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+          console.log("Reloading gallery with subfolder:", currentFolderPath);
+          this.loadGalleryImages({ target: { dataset: { subfolder: currentFolderPath } } });
         }, 100);
       }
     };
+
+
 
     deleteButton.addEventListener('click', this.handleDelete);
 
