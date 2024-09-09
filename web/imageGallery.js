@@ -1795,6 +1795,21 @@ class ComfyCarousel extends ComfyDialog {
     this.lastViewedIndex = [...active.parentNode.children].indexOf(next);
   }
 
+  async showGalleryView() {
+    if (this.isGalleryCarousel) {
+      if (!this.element.querySelector('.gallery-container')) {
+        const galleryContainer = await this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
+        this.scrollToLastViewedImage(galleryContainer);
+      }
+    } else {
+      app.ui.nodeCarousel.close();
+      if (!app.ui.galleryCarousel.element.querySelector('.gallery-container')) {
+        const galleryContainer = await app.ui.galleryCarousel.loadGalleryImages({ target: { dataset: { subfolder: app.ui.galleryCarousel.currentFolderPath } } });
+        app.ui.galleryCarousel.scrollToLastViewedImage(galleryContainer);
+      }
+    }
+  }
+
   onKeydown(e) {
     const newFolderPopup = document.querySelector('.move-overlay');
     const inputField = document.querySelector('#new-folder-name');
@@ -1830,6 +1845,10 @@ class ComfyCarousel extends ComfyDialog {
       case "d":
       case "D":
         this.resetZoom();
+        break;
+      case "g":
+      case "G":
+        this.showGalleryView();
         break;
       case "o":
         this.loadImage();
