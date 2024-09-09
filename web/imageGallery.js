@@ -231,8 +231,9 @@ const styles = `
 .comfy-carousel .gallery-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--image-size, 150px), 1fr));
+  grid-auto-rows: var(--image-size, 150px);
   gap: 10px;
-  padding: 0 20px;
+  padding: 20px;
   height: calc(100vh - 65px);
   width: 90vw;
   overflow-y: auto;
@@ -240,6 +241,7 @@ const styles = `
   transition: opacity 0.5s ease, transform 0.5s ease;
   opacity: 0;
   margin-top: 4.5%;
+  align-content: start;
 }
 
 .gallery-container.show {
