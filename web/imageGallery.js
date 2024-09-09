@@ -462,6 +462,41 @@ const styles = `
   text-align: center;
 }
 
+.comfy-carousel .new-folder {
+  background: transparent;
+  color: #fff;
+  border: none;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s, backdrop-filter 0.3s;
+  border-radius: 8px;
+}
+
+.comfy-carousel .new-folder:hover {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.move-popup input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.move-popup input[type="text"]::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .move-overlay {
   position: fixed;
   top: 0;
@@ -1372,12 +1407,86 @@ class ComfyCarousel extends ComfyDialog {
       }
     };
 
-
-
     deleteButton.addEventListener('click', this.handleDelete);
 
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'button-container';
+
+    const newFolderButton = document.createElement('button');
+    newFolderButton.className = 'new-folder scroll-to-top select-images';
+    newFolderButton.innerHTML = '+';
+    newFolderButton.title = 'Create new folder';
+    newFolderButton.addEventListener('click', () => {
+      const overlay = document.createElement('div');
+      overlay.className = 'move-overlay';
+
+      const popup = document.createElement('div');
+      popup.className = 'move-popup';
+      popup.innerHTML = `
+        <h3>Create new folder</h3>
+        <input type="text" id="new-folder-name" placeholder="Enter folder name">
+        <div class="popup-buttons">
+          <button class="ok-button">OK</button>
+          <button class="cancel-button">Cancel</button>
+        </div>
+      `;
+
+      const okButton = popup.querySelector('.ok-button');
+      const cancelButton = popup.querySelector('.cancel-button');
+      const input = popup.querySelector('#new-folder-name');
+
+      const createFolder = async () => {
+        const folderName = input.value.trim();
+        if (folderName) {
+          try {
+            const response = await fetch("/gallery/folder/create", {
+              method: "POST",
+              body: new URLSearchParams({
+                type: 'output',
+                subfolder: this.currentSubfolder,
+                foldername: folderName
+              }),
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+              }
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to create folder: ${response.statusText}`);
+            }
+
+            // Reload the gallery to show the new folder
+            this.loadGalleryImages({ target: { dataset: { subfolder: this.currentSubfolder } } });
+          } catch (error) {
+            console.error('Error creating folder:', error);
+            alert(`Failed to create folder: ${error.message}`);
+          }
+        }
+        overlay.remove();
+      };
+
+      okButton.addEventListener('click', createFolder);
+      cancelButton.addEventListener('click', () => overlay.remove());
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          createFolder();
+        }
+      });
+
+      document.addEventListener('keydown', function escHandler(e) {
+        if (e.key === "Escape") {
+          overlay.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      });
+
+      overlay.appendChild(popup);
+      document.body.appendChild(overlay);
+      input.focus(); // Automatically focus the input field
+    });
+
 
     const storedSize = localStorage.getItem('galleryImageSize') || '150';
 
@@ -1552,6 +1661,7 @@ class ComfyCarousel extends ComfyDialog {
     buttonContainer.appendChild(deleteButton);
     buttonContainer.appendChild(moveButton);
     buttonContainer.appendChild(selectButton);
+    buttonContainer.appendChild(newFolderButton);
     buttonContainer.appendChild(reloadButton);
     buttonContainer.appendChild(scrollToTopButton);
     this.element.appendChild(breadcrumbContainer);
@@ -1634,6 +1744,23 @@ class ComfyCarousel extends ComfyDialog {
   }
 
   onKeydown(e) {
+    const newFolderPopup = document.querySelector('.move-overlay');
+    const inputField = document.querySelector('#new-folder-name');
+    const movePopup = document.querySelector('.move-popup');
+
+    // Check if the new folder popup or move popup is visible
+    if (newFolderPopup || movePopup) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        newFolderPopup?.remove();
+        movePopup?.remove();
+      }
+      // Allow normal keyboard behavior for text input
+      return;
+    }
+
+    // Original key handling for the gallery
     e.preventDefault();
     e.stopPropagation();
     switch (e.key) {
@@ -1669,6 +1796,7 @@ class ComfyCarousel extends ComfyDialog {
         break;
     }
   }
+
 
 
   initializeGallerySize() {

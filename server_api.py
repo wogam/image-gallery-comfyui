@@ -254,3 +254,33 @@ async def move_items(request):
     return web.Response(status=204)
 
 PromptServer.instance.routes.post('/gallery/items/move')(move_items)
+
+async def create_folder(request):
+    data = await request.post()
+    print("Received folder create request:", dict(data))
+
+    dir_type = data.get('type', 'output')
+    base_dir = folder_paths.get_directory_by_type(dir_type)
+    if base_dir is None:
+        return web.Response(status=400, text="Invalid directory type")
+
+    current_subfolder = data.get('subfolder', '')
+    foldername = data.get('foldername')
+    if foldername is None:
+        return web.Response(status=400, text="Foldername is missing")
+
+    new_folder_path = os.path.normpath(os.path.join(base_dir, current_subfolder, foldername))
+    print("Attempting to create folder:", new_folder_path)
+
+    if not new_folder_path.startswith(base_dir):
+        return web.Response(status=403, text="Security check failed")
+
+    try:
+        os.makedirs(new_folder_path, exist_ok=True)
+        print("Folder created successfully")
+        return web.Response(status=204)
+    except Exception as e:
+        print(f"Error creating folder: {str(e)}")
+        return web.Response(status=500, text=str(e))
+
+PromptServer.instance.routes.post('/gallery/folder/create')(create_folder)
