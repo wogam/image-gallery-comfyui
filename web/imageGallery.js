@@ -1353,7 +1353,7 @@ class ComfyCarousel extends ComfyDialog {
               });
             } else if (item.classList.contains('folder-button')) {
               const folderName = item.querySelector('.folder-text').textContent;
-              const subfolder = item.dataset.subfolder.replace(`/${folderName}`, '');
+              const subfolder = this.currentSubfolder;
               requestData = {
                 type: 'output',
                 subfolder: subfolder,
