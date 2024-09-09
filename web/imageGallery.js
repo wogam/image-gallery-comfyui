@@ -1119,6 +1119,24 @@ class ComfyCarousel extends ComfyDialog {
     this.isSelectionMode = false;
     let confirmDelete = false;
     selectButton.addEventListener('click', () => {
+      this.toggleSelectionMode();
+    });
+
+    this.exitSelectionMode = () => {
+      this.isSelectionMode = false;
+      selectButton.innerHTML = '&#10003;';
+      galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
+        item.classList.remove('greyed-out');
+        item.classList.remove('selected');
+      });
+      updateButtonVisibility();
+      confirmDelete = false;
+      deleteButton.innerHTML = deleteButtonSVG;
+      lastSelectedIndex = -1;
+      updateImageCount();
+    };
+
+    this.toggleSelectionMode = () => {
       this.isSelectionMode = !this.isSelectionMode;
       if (this.isSelectionMode) {
         selectButton.innerHTML = '&#8212;';
@@ -1127,18 +1145,10 @@ class ComfyCarousel extends ComfyDialog {
         });
         updateButtonVisibility();
       } else {
-        selectButton.innerHTML = '&#10003;';
-        galleryContainer.querySelectorAll('.folder-button, img').forEach(item => {
-          item.classList.remove('greyed-out');
-          item.classList.remove('selected');
-        });
-        updateButtonVisibility();
-        confirmDelete = false;
-        deleteButton.innerHTML = deleteButtonSVG;
-        lastSelectedIndex = -1;
+        this.exitSelectionMode();
       }
       updateImageCount();
-    });
+    };
 
     const moveButton = document.createElement('button');
     moveButton.className = 'move scroll-to-top select-images';
@@ -1262,9 +1272,8 @@ class ComfyCarousel extends ComfyDialog {
                 name: imageParams.get('filename')
               };
             } else if (item.classList.contains('folder-button')) {
-              const folderPath = item.dataset.subfolder;
               const folderName = item.querySelector('.folder-text').textContent;
-              const subfolder = folderPath.replace(`/${folderName}`, '');
+              const subfolder = this.currentSubfolder;
               return {
                 type: 'folder',
                 subfolder: subfolder,
@@ -1417,19 +1426,22 @@ class ComfyCarousel extends ComfyDialog {
     newFolderButton.innerHTML = '+';
     newFolderButton.title = 'Create new folder';
     newFolderButton.addEventListener('click', () => {
+      const selectedItems = galleryContainer.querySelectorAll('.folder-button.selected, img.selected');
+      const isSelectionMode = this.isSelectionMode && selectedItems.length > 0;
+
       const overlay = document.createElement('div');
       overlay.className = 'move-overlay';
 
       const popup = document.createElement('div');
       popup.className = 'move-popup';
       popup.innerHTML = `
-        <h3>Create new folder</h3>
-        <input type="text" id="new-folder-name" placeholder="Enter folder name">
-        <div class="popup-buttons">
-          <button class="ok-button">OK</button>
-          <button class="cancel-button">Cancel</button>
-        </div>
-      `;
+    <h3>${isSelectionMode ? 'New folder from selection' : 'Create new folder'}</h3>
+    <input type="text" id="new-folder-name" placeholder="Enter folder name">
+    <div class="popup-buttons">
+      <button class="ok-button">OK</button>
+      <button class="cancel-button">Cancel</button>
+    </div>
+  `;
 
       const okButton = popup.querySelector('.ok-button');
       const cancelButton = popup.querySelector('.cancel-button');
@@ -1439,7 +1451,8 @@ class ComfyCarousel extends ComfyDialog {
         const folderName = input.value.trim();
         if (folderName) {
           try {
-            const response = await fetch("/gallery/folder/create", {
+            // Create the new folder
+            const createResponse = await fetch("/gallery/folder/create", {
               method: "POST",
               body: new URLSearchParams({
                 type: 'output',
@@ -1451,15 +1464,53 @@ class ComfyCarousel extends ComfyDialog {
               }
             });
 
-            if (!response.ok) {
-              throw new Error(`Failed to create folder: ${response.statusText}`);
+            if (!createResponse.ok) {
+              throw new Error(`Failed to create folder: ${createResponse.statusText}`);
             }
 
-            // Reload the gallery to show the new folder
-            this.loadGalleryImages({ target: { dataset: { subfolder: this.currentSubfolder } } });
+            if (isSelectionMode) {
+              // Move selected items to the new folder
+              const itemsToMove = Array.from(selectedItems).map(item => {
+                if (item.tagName === 'IMG') {
+                  const imageParams = new URLSearchParams(item.dataset.src.split("?")[1]);
+                  return {
+                    type: 'image',
+                    subfolder: imageParams.get('subfolder') || '',
+                    name: imageParams.get('filename')
+                  };
+                } else if (item.classList.contains('folder-button')) {
+                  const folderName = item.querySelector('.folder-text').textContent;
+                  const subfolder = this.currentSubfolder;
+                  return {
+                    type: 'folder',
+                    subfolder: subfolder,
+                    name: folderName
+                  };
+                }
+              });
+
+              const moveResponse = await fetch("/gallery/items/move", {
+                method: "POST",
+                body: new URLSearchParams({
+                  type: 'output',
+                  destination: this.currentSubfolder ? `${this.currentSubfolder}/${folderName}` : folderName,
+                  items: JSON.stringify(itemsToMove)
+                }),
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded"
+                }
+              });
+
+              if (!moveResponse.ok) {
+                throw new Error(`Failed to move items: ${moveResponse.statusText}`);
+              }
+            }
+
+            // Load the new folder
+            this.loadGalleryImages({ target: { dataset: { subfolder: this.currentSubfolder ? `${this.currentSubfolder}/${folderName}` : folderName } } });
           } catch (error) {
-            console.error('Error creating folder:', error);
-            alert(`Failed to create folder: ${error.message}`);
+            console.error('Error creating folder or moving items:', error);
+            alert(`Failed to create folder or move items: ${error.message}`);
           }
         }
         overlay.remove();
@@ -1486,6 +1537,7 @@ class ComfyCarousel extends ComfyDialog {
       document.body.appendChild(overlay);
       input.focus(); // Automatically focus the input field
     });
+
 
 
     const storedSize = localStorage.getItem('galleryImageSize') || '150';
@@ -1748,7 +1800,11 @@ class ComfyCarousel extends ComfyDialog {
     const inputField = document.querySelector('#new-folder-name');
     const movePopup = document.querySelector('.move-popup');
 
-    // Check if the new folder popup or move popup is visible
+    if (this.isSelectionMode && e.key === "Escape") {
+      this.exitSelectionMode();
+      return;
+    }
+
     if (newFolderPopup || movePopup) {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -1756,11 +1812,9 @@ class ComfyCarousel extends ComfyDialog {
         newFolderPopup?.remove();
         movePopup?.remove();
       }
-      // Allow normal keyboard behavior for text input
       return;
     }
 
-    // Original key handling for the gallery
     e.preventDefault();
     e.stopPropagation();
     switch (e.key) {
