@@ -1129,7 +1129,6 @@ class ComfyCarousel extends ComfyDialog {
     this.showMovePopup(this.currentFolderPath, moveItem, moveAndOpenItem);
   }
 
-
   setupCarousel(slides, activeIndex) {
     const carousel = $el("div.comfy-carousel-box", {}, [
       $el("div.slides", {}, slides),
@@ -1969,6 +1968,10 @@ class ComfyCarousel extends ComfyDialog {
         } else if (this.element.querySelector('.gallery-container') && this.isSelectionMode && this.element.querySelector('.folder-button.selected, img.selected')) {
           this.handleDelete();
         }
+        break;
+      case "s":
+      case "S":
+        this.toggleSelectionMode();
         break;
     }
   }
