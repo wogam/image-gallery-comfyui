@@ -962,6 +962,174 @@ class ComfyCarousel extends ComfyDialog {
     }
   }
 
+  showMovePopup(currentPath, onMove, onMoveAndOpen) {
+    const overlay = document.createElement('div');
+    overlay.className = 'move-overlay';
+
+    const popup = document.createElement('div');
+    popup.className = 'move-popup';
+    popup.innerHTML = `
+      <h3>Select destination folder:</h3>
+      <div class="breadcrumb-container"></div>
+      <div class="folder-list"></div>
+      <div class="popup-buttons">
+          <button class="move-button">Move</button>
+          <button class="move-open-button">Move + Open</button>
+          <button class="cancel-button">Cancel</button>
+      </div>
+  `;
+
+    const breadcrumbContainer = popup.querySelector('.breadcrumb-container');
+    const folderList = popup.querySelector('.folder-list');
+    const moveButton = popup.querySelector('.move-button');
+    const moveOpenButton = popup.querySelector('.move-open-button');
+    const cancelButton = popup.querySelector('.cancel-button');
+
+    const updateBreadcrumb = (path) => {
+      breadcrumbContainer.innerHTML = '';
+      const pathSegments = path.split('/').filter(segment => segment !== '');
+      pathSegments.unshift('Home');
+
+      pathSegments.forEach((segment, index) => {
+        const crumb = document.createElement('button');
+        crumb.className = 'breadcrumb-navigation-button';
+        crumb.textContent = segment;
+        crumb.addEventListener('click', () => {
+          if (index === 0) {
+            updateFolderList('');
+          } else {
+            const newPath = pathSegments.slice(1, index + 1).join('/');
+            updateFolderList(newPath);
+          }
+        });
+        breadcrumbContainer.appendChild(crumb);
+      });
+
+      const addButton = document.createElement('button');
+      addButton.className = 'breadcrumb-navigation-button';
+      addButton.textContent = '+';
+      addButton.addEventListener('click', async () => {
+        breadcrumbContainer.removeChild(addButton);
+        await showFolderDropdown(path);
+      });
+
+      breadcrumbContainer.appendChild(addButton);
+    };
+
+    const showFolderDropdown = async (path) => {
+      const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(path)}`);
+      if (!response.ok) {
+        alert("Failed to load folders");
+        return;
+      }
+      const data = await response.json();
+      const folders = data.folders;
+
+      const select = document.createElement('select');
+      select.className = 'folder-dropdown';
+
+      const defaultOption = document.createElement('option');
+      defaultOption.textContent = 'Select a folder';
+      defaultOption.value = '';
+      select.appendChild(defaultOption);
+
+      folders.forEach(folder => {
+        const option = document.createElement('option');
+        option.value = folder;
+        option.textContent = folder;
+        select.appendChild(option);
+      });
+
+      select.addEventListener('change', (e) => {
+        if (e.target.value) {
+          updateFolderList(`${path}/${e.target.value}`.replace(/^\//, ''));
+        }
+      });
+
+      const existingDropdown = breadcrumbContainer.querySelector('.folder-dropdown');
+      if (existingDropdown) existingDropdown.remove();
+
+      breadcrumbContainer.appendChild(select);
+    };
+
+    const updateFolderList = async (path) => {
+      currentPath = path;
+      updateBreadcrumb(path);
+    };
+
+    updateFolderList(currentPath);
+
+    moveButton.addEventListener('click', async () => {
+      await onMove(currentPath);
+      overlay.remove();
+    });
+
+    moveOpenButton.addEventListener('click', async () => {
+      await onMoveAndOpen(currentPath);
+      overlay.remove();
+    });
+
+    cancelButton.addEventListener('click', () => {
+      overlay.remove();
+    });
+
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+  }
+
+  handleMove() {
+    const activeImage = this.getActive();
+    const imageSrc = activeImage.getAttribute('src');
+    const imageParams = new URLSearchParams(imageSrc.split("?")[1]);
+    const itemToMove = {
+      type: 'image',
+      subfolder: imageParams.get('subfolder') || '',
+      name: imageParams.get('filename')
+    };
+
+    const moveItem = async (selectedFolder) => {
+      try {
+        const response = await fetch("/gallery/items/move", {
+          method: "POST",
+          body: new URLSearchParams({
+            type: 'output',
+            destination: selectedFolder,
+            items: JSON.stringify([itemToMove])
+          }),
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+          }
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to move item: ${response.statusText}. Server message: ${errorText}`);
+        }
+
+        const newActive = activeImage.nextElementSibling || activeImage.previousElementSibling;
+        if (activeImage._dot) {
+          activeImage._dot.remove();
+        }
+        activeImage.remove();
+        if (newActive) this.selectImage(newActive);
+        else this.close();
+
+      } catch (error) {
+        console.error('Error moving item:', error);
+        alert(`Failed to move item. Error: ${error.message}`);
+      }
+    };
+
+    const moveAndOpenItem = async (selectedFolder) => {
+      await moveItem(selectedFolder);
+      // Open the destination folder after moving
+      this.loadGalleryImages({ target: { dataset: { subfolder: selectedFolder } } });
+    };
+
+    this.showMovePopup(this.currentFolderPath, moveItem, moveAndOpenItem);
+  }
+
+
   setupCarousel(slides, activeIndex) {
     const carousel = $el("div.comfy-carousel-box", {}, [
       $el("div.slides", {}, slides),
@@ -989,6 +1157,10 @@ class ComfyCarousel extends ComfyDialog {
             this.loadImage();
             this.close();
           }
+        }),
+        $el("button.move", {
+          innerHTML: moveButtonSVG,
+          onclick: () => this.handleMove()
         }),
         $el("button.gallery", {
           innerHTML: '',
@@ -1196,169 +1368,60 @@ class ComfyCarousel extends ComfyDialog {
     moveButton.style.display = 'none';
     let currentPath = this.currentFolderPath || '';
     moveButton.addEventListener('click', () => {
-      const overlay = document.createElement('div');
-      overlay.className = 'move-overlay';
-
-      const popup = document.createElement('div');
-      popup.className = 'move-popup';
-      popup.innerHTML = `
-            <h3>Select destination folder:</h3>
-            <div class="breadcrumb-container"></div>
-            <div class="folder-list"></div>
-            <div class="popup-buttons">
-                <button class="ok-button">OK</button>
-                <button class="cancel-button">Cancel</button>
-            </div>
-        `;
-
-      const breadcrumbContainer = popup.querySelector('.breadcrumb-container');
-      const folderList = popup.querySelector('.folder-list');
-      const okButton = popup.querySelector('.ok-button');
-      const cancelButton = popup.querySelector('.cancel-button');
-
-      let currentPath = this.currentFolderPath || '';
-
-      const updateBreadcrumb = (path) => {
-        breadcrumbContainer.innerHTML = '';
-        const pathSegments = path.split('/').filter(segment => segment !== '');
-        pathSegments.unshift('Home');
-
-        pathSegments.forEach((segment, index) => {
-          const crumb = document.createElement('button');
-          crumb.className = 'breadcrumb-navigation-button';
-          crumb.textContent = segment;
-          crumb.addEventListener('click', () => {
-            if (index === 0) {
-              updateFolderList('');
-            } else {
-              const newPath = pathSegments.slice(1, index + 1).join('/');
-              updateFolderList(newPath);
-            }
-          });
-          breadcrumbContainer.appendChild(crumb);
-        });
-
-        const addButton = document.createElement('button');
-        addButton.className = 'breadcrumb-navigation-button';
-        addButton.textContent = '+';
-        addButton.addEventListener('click', async () => {
-          breadcrumbContainer.removeChild(addButton);
-          await showFolderDropdown(path);
-        });
-
-        breadcrumbContainer.appendChild(addButton);
-      };
-
-
-      const showFolderDropdown = async (path) => {
-        const response = await fetch(`/gallery/images?subfolder=${encodeURIComponent(path)}`);
-        if (!response.ok) {
-          alert("Failed to load folders");
-          return;
-        }
-        const data = await response.json();
-        const folders = data.folders;
-
-        const select = document.createElement('select');
-        select.className = 'folder-dropdown';
-
-        const defaultOption = document.createElement('option');
-        defaultOption.textContent = 'Select a folder';
-        defaultOption.value = '';
-        select.appendChild(defaultOption);
-
-        const selectedFolders = Array.from(galleryContainer.querySelectorAll('.folder-button.selected'))
-          .map(folder => folder.dataset.name);
-
-        folders.forEach(folder => {
-          if (!selectedFolders.includes(folder)) {
-            const option = document.createElement('option');
-            option.value = folder;
-            option.textContent = folder;
-            select.appendChild(option);
+      const moveItems = async (selectedFolder) => {
+        const selectedItems = galleryContainer.querySelectorAll('.folder-button.selected, img.selected');
+        const itemsToMove = Array.from(selectedItems).map(item => {
+          if (item.tagName === 'IMG') {
+            const imageParams = new URLSearchParams(item.dataset.src.split("?")[1]);
+            return {
+              type: 'image',
+              subfolder: imageParams.get('subfolder') || '',
+              name: imageParams.get('filename')
+            };
+          } else if (item.classList.contains('folder-button')) {
+            const folderName = item.querySelector('.folder-text').textContent;
+            const subfolder = this.currentSubfolder;
+            return {
+              type: 'folder',
+              subfolder: subfolder,
+              name: folderName
+            };
           }
         });
 
-        select.addEventListener('change', (e) => {
-          if (e.target.value) {
-            updateFolderList(`${path}/${e.target.value}`.replace(/^\//, ''));
-          }
-        });
-
-        const existingDropdown = breadcrumbContainer.querySelector('.folder-dropdown');
-        if (existingDropdown) existingDropdown.remove();
-
-        breadcrumbContainer.appendChild(select);
-      };
-
-      const updateFolderList = async (path) => {
-        currentPath = path;
-        this.currentFolderPath = path;
-        updateBreadcrumb(path);
-      };
-
-      updateFolderList(currentPath);
-
-      okButton.addEventListener('click', async () => {
-        const selectedFolder = currentPath;
-        if (selectedFolder !== undefined) {
-          const selectedItems = galleryContainer.querySelectorAll('.folder-button.selected, img.selected');
-          const itemsToMove = Array.from(selectedItems).map(item => {
-            if (item.tagName === 'IMG') {
-              const imageParams = new URLSearchParams(item.dataset.src.split("?")[1]);
-              return {
-                type: 'image',
-                subfolder: imageParams.get('subfolder') || '',
-                name: imageParams.get('filename')
-              };
-            } else if (item.classList.contains('folder-button')) {
-              const folderName = item.querySelector('.folder-text').textContent;
-              const subfolder = this.currentSubfolder;
-              return {
-                type: 'folder',
-                subfolder: subfolder,
-                name: folderName
-              };
+        try {
+          const response = await fetch("/gallery/items/move", {
+            method: "POST",
+            body: new URLSearchParams({
+              type: 'output',
+              destination: selectedFolder,
+              items: JSON.stringify(itemsToMove)
+            }),
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
             }
           });
 
-          try {
-            const response = await fetch("/gallery/items/move", {
-              method: "POST",
-              body: new URLSearchParams({
-                type: 'output',
-                destination: selectedFolder,
-                items: JSON.stringify(itemsToMove)
-              }),
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-              }
-            });
-
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`Failed to move items: ${response.statusText}. Server message: ${errorText}`);
-            }
-
-            selectedItems.forEach(item => item.remove());
-            setTimeout(() => {
-              this.loadGalleryImages({ target: { dataset: { subfolder: this.currentFolderPath } } });
-            }, 100);
-
-          } catch (error) {
-            console.error('Error moving items:', error);
-            alert(`Failed to move items. Error: ${error.message}`);
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to move items: ${response.statusText}. Server message: ${errorText}`);
           }
+
+          selectedItems.forEach(item => item.remove());
+          this.exitSelectionMode();
+        } catch (error) {
+          console.error('Error moving items:', error);
+          alert(`Failed to move items. Error: ${error.message}`);
         }
-        overlay.remove();
-      });
+      };
 
-      cancelButton.addEventListener('click', () => {
-        overlay.remove();
-      });
+      const moveAndOpenItems = async (selectedFolder) => {
+        await moveItems(selectedFolder);
+        // Open the destination folder after moving
+        this.loadGalleryImages({ target: { dataset: { subfolder: selectedFolder } } });
+      };
 
-      overlay.appendChild(popup);
-      document.body.appendChild(overlay);
+      this.showMovePopup(this.currentFolderPath, moveItems, moveAndOpenItems);
     });
 
     const reloadButton = document.createElement('button');
@@ -1909,8 +1972,6 @@ class ComfyCarousel extends ComfyDialog {
         break;
     }
   }
-
-
 
   initializeGallerySize() {
     const storedSize = localStorage.getItem('galleryImageSize') || '150';
