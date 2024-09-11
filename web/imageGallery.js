@@ -93,6 +93,7 @@ const styles = `
 .comfy-carousel-box .close,
 .comfy-carousel-box .gallery,
 .comfy-carousel-box .reset-zoom,
+.comfy-carousel-box .download,
 .comfy-carousel-box .load,
 .comfy-carousel-box .prev,
 .comfy-carousel-box .next,
@@ -130,6 +131,7 @@ const styles = `
 .comfy-carousel-box .load:hover,
 .comfy-carousel-box .prev:hover,
 .comfy-carousel-box .next:hover,
+.comfy-carousel-box .download:hover,
 .comfy-carousel .scroll-to-top:hover,
 .comfy-carousel .reload-gallery:hover,
 .comfy-carousel .select-images:hover {
@@ -147,11 +149,15 @@ const styles = `
 }
 
 .comfy-carousel-box .reset-zoom:hover {
-  background-color: rgba(250, 200, 152, 0.3);
+  background-color: rgba(68, 93, 96, 0.3);
 }
 
 .comfy-carousel-box .load:hover {
   background-color: rgba(193, 225, 193, 0.3);
+}
+
+.comfy-carousel-box .download:hover {
+  background-color: rgba(255, 223, 186, 0.3);
 }
 
 .comfy-carousel-box .dots {
@@ -167,6 +173,10 @@ const styles = `
 }
 
 .comfy-carousel-box .reset-zoom {
+  right: 270px;
+}
+
+.comfy-carousel-box .download {
   right: 220px;
 }
 
@@ -926,6 +936,32 @@ class ComfyCarousel extends ComfyDialog {
     }
   }
 
+  async downloadImage() {
+    const activeImage = this.getActive();
+    if (activeImage) {
+      try {
+        const response = await fetch(activeImage.src);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+
+        // Extract the actual filename from the src URL
+        const urlParams = new URLSearchParams(activeImage.src.split('?')[1]);
+        const filename = urlParams.get('filename');
+        a.download = filename || 'image.png'; // Use 'image.png' as fallback if filename is not found
+
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error("Error downloading image:", error);
+      }
+    }
+  }
+
   setupCarousel(slides, activeIndex) {
     const carousel = $el("div.comfy-carousel-box", {}, [
       $el("div.slides", {}, slides),
@@ -942,6 +978,10 @@ class ComfyCarousel extends ComfyDialog {
         $el("button.reset-zoom", {
           innerHTML: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-3.2 -3.2 38.40 38.40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18,28A12,12,0,1,0,6,16v6.2L2.4,18.6,1,20l6,6,6-6-1.4-1.4L8,22.2V16H8A10,10,0,1,1,18,26Z"/></svg>`,
           onclick: () => this.resetZoom()
+        }),
+        $el("button.download", {
+          innerHTML: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+          onclick: () => this.downloadImage()
         }),
         $el("button.load", {
           innerHTML: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
@@ -1943,7 +1983,6 @@ app.registerExtension({
       if (!types.includes(type)) types.push(type);
     });
     input.setAttribute("accept", types.join(","));
-
     const origHandleFile = app.handleFile;
     app.handleFile = function (...args) {
       handleFile.call(this, origHandleFile, ...args);
