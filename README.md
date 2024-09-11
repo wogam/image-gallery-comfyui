@@ -12,6 +12,7 @@ A web-based application for displaying, managing, and interacting with images. T
 ### Image Gallery
 - **Thumbnail View**: Browse images in a grid layout with lazy loading for performance.
 - **Folder Navigation**: Easily navigate through folders and subfolders.
+- **Fodler Management**: Create new folders, folders from selectiona and delete folders. 
 
 ### Metadata Extraction
 - **EXIF Data Parsing**: Extracts metadata from JPEG and WebP images.
@@ -46,6 +47,7 @@ To install, clone this repository into `ComfyUI/custom_nodes` folder with `git c
 | Left arrow  | Display previous image               |
 | Right arrow | Display next image                   |
 | D           | Reset view                           |
+| G           | Back to gallery                      |
 | O           | Open workflow from current image      |
 | Del         | Remove the currently displayed image |
 | Esc         | Close gallery view                   |
