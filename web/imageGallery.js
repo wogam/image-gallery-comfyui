@@ -2020,9 +2020,9 @@ app.registerExtension({
     ui.nodeCarousel = new ComfyCarousel();
     ui.galleryCarousel.initializeGallerySize();
 
-    const clearButton = document.querySelector('button[title="Clears current workflow"]');
-    if (!clearButton) {
-      console.warn("Clear button not found. Gallery icon couldn't be added.");
+    const lastButton = document.querySelector('div.comfy-menu > button:last-of-type');
+    if (!lastButton) {
+      console.warn("Last button in menu not found. Gallery icon couldn't be added.");
       return;
     }
 
@@ -2034,8 +2034,13 @@ app.registerExtension({
       console.log("ComfyCarousel initialized");
     };
 
-    galleryButton.appendChild(createGallerySVG());
-    clearButton.parentNode.insertBefore(galleryButton, clearButton.nextSibling);
+    const gallerySvg = createGallerySVG();
+    const galleryText = document.createElement('span');
+    galleryText.textContent = 'View Gallery';
+
+    galleryButton.appendChild(gallerySvg);
+    galleryButton.appendChild(galleryText);
+    lastButton.parentNode.appendChild(galleryButton);
   },
 
   async setup() {
@@ -2048,7 +2053,7 @@ app.registerExtension({
     });
     input.setAttribute("accept", types.join(","));
     const origHandleFile = app.handleFile;
-    app.handleFile = function (...args) {
+    app.handleFile = function(...args) {
       handleFile.call(this, origHandleFile, ...args);
     };
   },
@@ -2068,7 +2073,7 @@ app.registerExtension({
     };
 
     const origOnDblClick = nodeType.prototype.onDblClick;
-    nodeType.prototype.onDblClick = function (e, pos, ...args) {
+    nodeType.prototype.onDblClick = function(e, pos, ...args) {
       if (this.imgs?.length && isImageClick(this, pos)) {
         const imageIndex = this.imageIndex ?? this.overIndex ?? 0;
         app.ui.nodeCarousel.show(this.imgs.map(img => img.src), imageIndex, (src) => {
